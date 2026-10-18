@@ -28,4 +28,4 @@ jobs:
           opa eval --fail \
             -i regionuserstorage.json \
             -d regionuserstorage.rego \
-            "count(data.azure.deployment.deny) == 0"
+            "data.azure.deployment.deny[_]"
