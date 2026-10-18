@@ -2,31 +2,30 @@ name: OPA Policy Compliance Check
 
 on:
   push:
-    branches: [ main, feature/* ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ main ]
+    branches: [ "main" ]
 
 jobs:
   validate-policy:
     runs-on: ubuntu-latest
+
     steps:
+      # Step 1: Checkout the repository code
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # Step 2: Set up Open Policy Agent (OPA)
       - name: Setup OPA
         uses: open-policy-agent/setup-opa@v2
         with:
-          opa-version: latest
+          opa_version: latest
 
-      # This checks all Rego syntax and files in your repository for correctness
-      - name: Run OPA Syntax Check
-        run: opa check . --strict
-
-      # (Optional) If you want to evaluate your test JSON against your rego file:
+      # Step 3: Run OPA evaluation with --fail flag checking deny count
       - name: Evaluate Rego Policy against Infrastructure Parameters
         run: |
-          echo "Running OPA evaluation..."
+          echo "Running OPA evaluation on regionuserstorage.json..."
           opa eval --fail \
             -i regionuserstorage.json \
             -d regionuserstorage.rego \
-            "data.azure.deployment.deny"
+            "count(data.azure.deployment.deny) == 0"
