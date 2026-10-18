@@ -11,21 +11,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository code
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Step 2: Set up Open Policy Agent (OPA)
       - name: Setup OPA
         uses: open-policy-agent/setup-opa@v2
         with:
           opa_version: latest
 
-      # Step 3: Run OPA evaluation with --fail flag checking deny count
       - name: Evaluate Rego Policy against Infrastructure Parameters
         run: |
-          echo "Running OPA evaluation on regionuserstorage.json..."
-          opa eval --fail \
+          echo "Running OPA evaluation..."
+          opa eval --fail-defined \
             -i regionuserstorage.json \
             -d regionuserstorage.rego \
             "data.azure.deployment.deny[_]"
