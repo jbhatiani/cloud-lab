@@ -1,0 +1,47 @@
+name: OPA Policy Compliance Check[cite: 1]
+
+on:
+  push:
+    branches: [ main, feature/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-policy:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Check out your Git repository code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Install the Open Policy Agent (OPA) binary on the runner
+      - name: Setup OPA
+        uses: open-policy-agent/setup-opa@v2
+        with:
+          opa-version: latest
+
+      # 3. Dynamically write the safeguarded Rego v1 policy file
+      - name: Create Rego Policy File
+        run: |
+          cat << 'EOF' > policy.rego
+          package azure.deployment
+
+          import rego.v1
+
+          # Rule 4: Validate Storage Encryption Best Practices (Safeguarded against missing keys)
+          deny contains msg if {
+              # Default to false (unencrypted) if the parameter path is missing entirely from input.json
+              storage_enabled := object.get(object.get(object.get(input, "parameters", {}), "enableInfrastructureEncryption", {}), "defaultValue", false)
+              storage_enabled == false
+              msg := "Security Violation: Infrastructure-level storage encryption must be explicitly enabled."
+          }
+          EOF
+
+      # 4. Run OPA evaluation with the --fail flag to enforce blocking
+      - name: Evaluate Rego Policy against Infrastructure Parameters
+        run: |
+          echo "Running OPA evaluation..."
+          opa eval --fail \
+            -i regionuserstorage.json \
+            -d regionuserstorage.rego \
+            "data.azure.deployment.deny"

@@ -1,0 +1,278 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "centralus"
+    },
+
+    "adminUsername": {
+      "type": "string",
+      "defaultValue": "appadmin"
+    },
+
+    "adminPassword": {
+      "type": "securestring",
+      "defaultValue": "1976*Engineer"
+    }
+  },
+
+  "variables": {
+    "vnetName": "Site1-vnet",
+    "subnetName": "Web",
+
+    "vmNames": [
+      "VM01",
+      "VM02",
+      "VM03"
+    ],
+
+    "nsgName": "vm-nsg",
+    "lbName": "int-lb",
+    "frontendIP": "int-lb-fe-ip",
+    "backendPool": "backend-pool-windows",
+    "probe": "http-int-health",
+    "rule": "http-in"
+  },
+
+  "resources": [
+
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('nsgName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "Allow-RDP",
+            "properties": {
+              "priority": 1000,
+              "direction": "Inbound",
+              "access": "Allow",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*"
+            }
+          }
+        ]
+      }
+    },
+
+    {
+      "type": "Microsoft.Network/loadBalancers",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('lbName')]",
+      "location": "[parameters('location')]",
+
+      "sku": {
+        "name": "Standard",
+        "tier": "Regional"
+      },
+
+      "properties": {
+
+        "frontendIPConfigurations": [
+          {
+            "name": "[variables('frontendIP')]",
+            "properties": {
+              "privateIPAddressVersion": "IPv4",
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]"
+              }
+            }
+          }
+        ],
+
+        "backendAddressPools": [
+          {
+            "name": "[variables('backendPool')]"
+          }
+        ],
+
+        "probes": [
+          {
+            "name": "[variables('probe')]",
+            "properties": {
+              "protocol": "Http",
+              "port": 80,
+              "requestPath": "/",
+              "intervalInSeconds": 5,
+              "numberOfProbes": 2
+            }
+          }
+        ],
+
+        "loadBalancingRules": [
+          {
+            "name": "[variables('rule')]",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', variables('lbName'), variables('frontendIP'))]"
+              },
+              "backendAddressPool": {
+                "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', variables('lbName'), variables('backendPool'))]"
+              },
+              "probe": {
+                "id": "[resourceId('Microsoft.Network/loadBalancers/probes', variables('lbName'), variables('probe'))]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 80,
+              "backendPort": 80,
+              "enableFloatingIP": false,
+              "idleTimeoutInMinutes": 4,
+              "disableOutboundSnat": true
+            }
+          }
+        ]
+      }
+    },
+
+    {
+      "copy": {
+        "name": "vmLoop",
+        "count": 3
+      },
+
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2023-09-01",
+      "name": "[concat('vm0', copyIndex(1), '-pip')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Static",
+        "publicIPAddressVersion": "IPv4"
+      }
+    },
+
+    {
+      "copy": {
+        "name": "nicLoop",
+        "count": 3
+      },
+
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-09-01",
+      "name": "[concat('vm0', copyIndex(1), '-nic')]",
+      "location": "[parameters('location')]",
+
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]",
+        "[resourceId('Microsoft.Network/loadBalancers', variables('lbName'))]"
+      ],
+
+      "properties": {
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+        },
+
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+
+              "privateIPAddressVersion": "IPv4",
+              "privateIPAllocationMethod": "Dynamic",
+
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]"
+              },
+
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat('vm0', copyIndex(1), '-pip'))]"
+              },
+
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', variables('lbName'), variables('backendPool'))]"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+
+    {
+      "copy": {
+        "name": "vmLoopCreate",
+        "count": 3
+      },
+
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-09-01",
+      "name": "[concat('VM0', copyIndex(1))]",
+      "location": "[parameters('location')]",
+
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', concat('vm0', copyIndex(1), '-nic'))]"
+      ],
+
+      "properties": {
+
+        "hardwareProfile": {
+          "vmSize": "Standard_D2as_v4"
+        },
+
+        "osProfile": {
+          "computerName": "[concat('VM0', copyIndex(1))]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2022-datacenter",
+            "version": "latest"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "diskSizeGB": 127
+          }
+        },
+
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat('vm0', copyIndex(1), '-nic'))]"
+            }
+          ]
+        }
+      }
+    },
+
+    {
+      "copy": {
+        "name": "iisInstallLoop",
+        "count": 3
+      },
+
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2023-09-01",
+      "name": "[concat('VM0', copyIndex(1), '/iis')]",
+      "location": "[parameters('location')]",
+
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', concat('VM0', copyIndex(1)))]"
+      ],
+
+      "properties": {
+        "publisher": "Microsoft.Compute",
+        "type": "CustomScriptExtension",
+        "typeHandlerVersion": "1.10",
+        "settings": {
+          "commandToExecute": "powershell -Command Install-WindowsFeature -name Web-Server -IncludeManagementTools"
+        }
+      }
+    }
+  ]
+}

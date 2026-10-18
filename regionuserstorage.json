@@ -1,0 +1,16 @@
+{
+  "parameters": {
+    "location": {
+      "defaultValue": "eastus"
+    },
+    "adminUsername": {
+      "defaultValue": "admin"
+    },
+    "adminPassword": {
+      "defaultValue": "1976*Enterprise"
+    },
+    "enableInfrastructureEncryption": {
+      "defaultValue": false
+    }
+  }
+}

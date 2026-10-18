@@ -1,0 +1,24 @@
+[1mdiff --git a/regionuserstorage.rego b/regionuserstorage.rego[m
+[1mindex ffb6d71..9954937 100644[m
+[1m--- a/regionuserstorage.rego[m
+[1m+++ b/regionuserstorage.rego[m
+[36m@@ -31,8 +31,14 @@[m [mdeny contains msg if {[m
+ [m
+ # Rule 4: Validate Storage Encryption Best Practices[m
+ deny contains msg if {[m
+[31m-    # Check if a storage account configuration exists in the parameters or resources[m
+[31m-    storage := input.parameters.enableInfrastructureEncryption[m
+[31m-    storage.defaultValue == false[m
+[31m-    msg := "Security Violation: Infrastructure-level storage encryption must be enabled for all deployments."[m
+[32m+[m[32m    # Safely extract the encryption property using object.get()[m[41m [m
+[32m+[m[32m    # If any parent object or the target key is missing, it defaults safely to false[m
+[32m+[m[32m    params := object.get(input, "parameters", {})[m
+[32m+[m[32m    storage_param := object.get(params, "enableInfrastructureEncryption", {})[m
+[32m+[m[32m    storage_enabled := object.get(storage_param, "defaultValue", false)[m
+[32m+[m[41m    [m
+[32m+[m[32m    # Trigger a violation if encryption is disabled or missing[m
+[32m+[m[32m    storage_enabled == false[m
+[32m+[m[41m    [m
+[32m+[m[32m    msg := "Security Violation: Infrastructure-level storage encryption must be explicitly enabled."[m
+ }[m
+\ No newline at end of file[m
