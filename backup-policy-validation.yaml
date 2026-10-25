@@ -1,0 +1,34 @@
+name: OPA Policy Compliance Check
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  validate-policy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup OPA
+        uses: open-policy-agent/setup-opa@v2
+        with:
+          opa_version: latest
+
+      - name: Evaluate Rego Policy against Infrastructure Parameters
+        run: |
+          echo "Running OPA evaluation..."
+          opa eval --fail-defined \
+            -i updated-azuredeploy.json \
+            -d helpers.rego \
+            -d declaration.rego \
+            -d infrastructure_rules.rego \
+            -d security_rules.rego \
+            -d loadbalancer_rules.rego \
+            -d policy.rego \
+            "data.azure.deployment.deny[_]"
