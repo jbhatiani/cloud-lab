@@ -19,15 +19,20 @@ jobs:
         with:
           opa_version: latest
 
-      - name: Evaluate Rego Policy against Infrastructure Parameters
+      - name: Automatically Evaluate All Rego and JSON Files
         run: |
-          echo "Running OPA evaluation..."
-          opa eval --fail-defined \
-            -i new-azuredeploy.json \
-            -d helpers.rego \
-            -d declaration.rego \
-            -d infrastructure_rules.rego \
-            -d security_rules.rego \
-            -d loadbalancer_rules.rego \
-            -d policy.rego \
-            "data.azure.deployment.deny[_]"
+          echo "Discovering and evaluating deployment templates against all policies..."
+          
+          # Loop through all JSON files in the workspace (excluding hidden git folders)
+          for json_file in $(find . -name "*.json" -not -path "*/.*" -not -path "./node_modules/*"); do
+            echo "--------------------------------------------------"
+            echo "Evaluating input file: $json_file"
+            
+            # -d . loads ALL .rego files found anywhere in the repository automatically
+            opa eval --fail-defined \
+              -i "$json_file" \
+              -d . \
+              "data.azure.deployment.deny[_]"
+              
+            echo "Passed: $json_file"
+          done
