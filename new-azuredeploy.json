@@ -4,15 +4,15 @@
   "parameters": {
     "location": {
       "type": "string",
-      "defaultValue": "westus"
+      "defaultValue": "eastus"
     },
     "adminUsername": {
       "type": "string",
-      "defaultValue": "SuperUser"
+      "defaultValue": "Admin"
     },
     "adminPassword": {
       "type": "secureString",
-      "defaultValue": "SuperPasswordProvider@123!"
+      "defaultValue": "Provider@123!"
     }
   },
   "resources": [
