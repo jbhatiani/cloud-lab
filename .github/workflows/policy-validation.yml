@@ -23,6 +23,11 @@ jobs:
         run: |
           echo "Running OPA evaluation..."
           opa eval --fail-defined \
-            -i regionuserstorage.json \
-            -d regionuserstorage.rego \
+            -i updated-azuredeploy.json \
+            -d helpers.rego \
+            -d declaration.rego \
+            -d infrastructure_rules.rego \
+            -d security_rules.rego \
+            -d loadbalancer_rules.rego \
+            -d policy.rego \
             "data.azure.deployment.deny[_]"
