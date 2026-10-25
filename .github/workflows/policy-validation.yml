@@ -23,7 +23,7 @@ jobs:
         run: |
           echo "Running OPA evaluation..."
           opa eval --fail-defined \
-            -i updated-azuredeploy.json \
+            -i new-azuredeploy.json \
             -d helpers.rego \
             -d declaration.rego \
             -d infrastructure_rules.rego \
