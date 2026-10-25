@@ -1,0 +1,27 @@
+name: Test Azure OIDC Login
+
+on:
+  push:
+    branches: [ main ] # Change to 'master' if your default branch is master, or use 'workflow_dispatch' to run manually
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  verify-oidc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Test Azure CLI (Show Account)
+        run: |
+          az account show
