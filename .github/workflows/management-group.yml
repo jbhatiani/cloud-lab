@@ -32,4 +32,16 @@ jobs:
             --name "deploy-mg-${{ github.run_number }}" \
             --location "centralus" \
             --template-file "./management-group.bicep" \
-            --parameters managementGroupId="mg-enterprise-landing-zones-v3" managementGroupDisplayName="Enterprise Landing Zones"
+            --parameters managementGroupId="mg-enterprise-landing-zones-v4" managementGroupDisplayName="Enterprise Landing Zones"
+
+     # 4. Automatically feed the Management Group ID into the subscription deployment
+      - name: Deploy Subscription into Management Group
+        uses: azure/arm-deploy@v1
+        with:
+          scope: tenant
+          region: centralus
+          template: ./infra/subscription.bicep
+          parameters: >
+            subscriptionName="sub-prod-landingzone"
+            billingScope="${{ secrets.AZURE_BILLING_SCOPE }}"
+            targetManagementGroupId="mg-enterprise-landing-zones-v4"
