@@ -1,7 +1,7 @@
 targetScope = 'tenant'
 
 @description('The unique identifier (name) for the Management Group')
-param managementGroupId string = 'mg-enterprise-landing-zones-v4'
+param managementGroupId string = 'mg-enterprise-landing-zones'
 
 @description('The friendly display name for the Management Group')
 param managementGroupDisplayName string = 'Enterprise Landing Zones'

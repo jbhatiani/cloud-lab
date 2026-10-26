@@ -32,7 +32,7 @@ jobs:
             --name "deploy-mg-${{ github.run_number }}" \
             --location "centralus" \
             --template-file "./management-group.bicep" \
-            --parameters managementGroupId="mg-enterprise-landing-zones-v4" managementGroupDisplayName="Enterprise Landing Zones"
+            --parameters managementGroupId="mg-enterprise-landing-zones" managementGroupDisplayName="Enterprise Landing Zones"
 
      # 4. Automatically deploy the subscription at the tenant level via Azure CLI
       - name: Deploy Subscription into Management Group
@@ -41,4 +41,4 @@ jobs:
             --name "deploy-sub-${{ github.run_number }}" \
             --location "centralus" \
             --template-file "./subscription.bicep" \
-            --parameters subscriptionName="sub-prod-landingzone" billingScope="${{ secrets.AZURE_BILLING_SCOPE }}" targetManagementGroupId="mg-enterprise-landing-zones-v4"
+            --parameters subscriptionName="sub-prod-landingzone" billingScope="${{ secrets.AZURE_BILLING_SCOPE }}" targetManagementGroupId="mg-enterprise-landing-zones"

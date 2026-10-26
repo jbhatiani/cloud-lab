@@ -2,7 +2,7 @@ targetScope = 'tenant'
 
 param subscriptionName string = 'sub-prod-landingzone'
 param billingScope string
-param targetManagementGroupId string = 'mg-enterprise-landing-zones-v4'
+param targetManagementGroupId string = 'mg-enterprise-landing-zones'
 
 resource subAlias 'Microsoft.Subscription/aliases@2021-10-01' = {
   name: subscriptionName
@@ -10,7 +10,9 @@ resource subAlias 'Microsoft.Subscription/aliases@2021-10-01' = {
     workload: 'Production'
     displayName: subscriptionName
     billingScope: billingScope
-    managementGroupId: targetManagementGroupId
+    additionalProperties: {
+      managementGroupId: targetManagementGroupId
+    }
   }
 }
 
