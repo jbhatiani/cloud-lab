@@ -32,4 +32,4 @@ jobs:
             --name "deploy-mg-${{ github.run_number }}" \
             --location "centralus" \
             --template-file "./management-group.bicep" \
-            --parameters managementGroupId="mg-enterprise-landing-zones-v3" managementGroupDisplayName="Enterprise Landing Zones v3"
+            --parameters managementGroupId="mg-enterprise-landing-zones-v3" managementGroupDisplayName="Enterprise Landing Zones"
