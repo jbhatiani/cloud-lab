@@ -15,4 +15,4 @@ resource mg 'Microsoft.Management/managementGroups@2023-04-01' = {
 }
 
 // Outputs the ID so subsequent steps or future pipeline jobs can reference it
-output managementGroupId string = managementGroup.id
+output managementGroupId string = mg.id
