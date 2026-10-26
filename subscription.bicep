@@ -11,7 +11,7 @@ resource subAlias 'Microsoft.Subscription/aliases@2021-10-01' = {
     displayName: subscriptionName
     billingScope: billingScope
     additionalProperties: {
-      managementGroupId: targetManagementGroupId
+      managementGroupId: '/providers/Microsoft.Management/managementGroups/${targetManagementGroupId}'
     }
   }
 }
