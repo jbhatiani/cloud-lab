@@ -13,7 +13,7 @@ jobs:
   deploy-management-group:
     runs-on: ubuntu-latest
     steps:
-      # 1. Pull your repository code down to the runner
+      # 1. Pull your repository code down to the runner try it
       - name: Checkout repository
         uses: actions/checkout@v4
 
