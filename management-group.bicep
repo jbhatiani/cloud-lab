@@ -1,10 +1,10 @@
 targetScope = 'tenant'
 
 @description('The unique identifier (name) for the Management Group')
-param managementGroupId string = 'mg-enterprise-landing-zones'
+param managementGroupId string = 'mg-enterprise-landing-zones-v3'
 
 @description('The friendly display name for the Management Group')
-param managementGroupDisplayName string = 'Enterprise Landing Zones'
+param managementGroupDisplayName string = 'Enterprise Landing Zones v3'
 
 // Automatically creates the management group below the root tenant level
 resource mg 'Microsoft.Management/managementGroups@2023-04-01' = {

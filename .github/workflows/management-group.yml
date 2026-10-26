@@ -25,10 +25,11 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           allow-no-subscriptions: true
 
-      # 3. Execute the tenant-level deployment directly
+      # 3. Execute the tenant-level deployment directly, passing parameters
       - name: Deploy Management Group
         run: |
           az deployment tenant create \
             --name "deploy-mg-${{ github.run_number }}" \
             --location "centralus" \
-            --template-file "./management-group.bicep"
+            --template-file "./management-group.bicep" \
+            --parameters managementGroupId="mg-enterprise-landing-zones-v3" managementGroupDisplayName="Enterprise Landing Zones v3"
