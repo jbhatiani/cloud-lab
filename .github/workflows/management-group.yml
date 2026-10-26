@@ -25,10 +25,9 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           allow-no-subscriptions: true
 
-      # 3. Explicitly set tenant context and execute the deployment
+      # 3. Execute the tenant-level deployment directly
       - name: Deploy Management Group
         run: |
-          az account set --tenant "${{ secrets.AZURE_TENANT_ID }}"
           az deployment tenant create \
             --name "deploy-mg-${{ github.run_number }}" \
             --location "centralus" \
