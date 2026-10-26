@@ -40,7 +40,7 @@ jobs:
         with:
           scope: tenant
           region: centralus
-          template: ./infra/subscription.bicep
+          template: ./subscription.bicep
           parameters: >
             subscriptionName="sub-prod-landingzone"
             billingScope="${{ secrets.AZURE_BILLING_SCOPE }}"
