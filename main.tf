@@ -26,9 +26,9 @@ resource "azurerm_management_group" "workload_mg" {
   display_name = "Production Web Applications"
 }
 
-# 3. Subscription (Vends the new subscription under your billing scope)
+# 3. Subscription (Vends a fresh subscription with a new alias)
 resource "azurerm_subscription" "workload_sub" {
-  alias             = "sub-webapp-prod-eus"
+  alias             = "sub-webapp-prod-eus-v2"
   subscription_name = "Production WebApp Subscription"
   billing_scope_id  = var.billing_scope_id
   workload          = "Production"
@@ -71,16 +71,8 @@ resource "azurerm_resource_group" "workload_rg" {
   ]
 }
 
-# Automatically adopt the existing Management Group into Terraform state
+# Adopt the existing Management Group into Terraform state
 import {
   to = azurerm_management_group.workload_mg
   id = "/providers/Microsoft.Management/managementGroups/mg-webapp-prod"
 }
-
-# Automatically adopt the existing Subscription alias into Terraform state
-import {
-  to = azurerm_subscription.workload_sub
-  id = "/providers/Microsoft.Subscription/aliases/sub-webapp-prod-eus"
-}
-
-# Triggering fresh run
