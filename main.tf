@@ -34,10 +34,16 @@ resource "azurerm_subscription" "workload_sub" {
   workload          = "Production"
 }
 
-# 4. Association (Pulls the newly vended subscription out of the root and into your MG)
+# 4. Association with explicit dependency enforcement
 resource "azurerm_management_group_subscription_association" "sub_assoc" {
   management_group_id = azurerm_management_group.workload_mg.id
-  subscription_id     = azurerm_subscription.workload_sub.subscription_id
+  subscription_id     = "/subscriptions/${azurerm_subscription.workload_sub.subscription_id}"
+
+  # Forces Terraform to wait until the subscription is fully vended before running the move
+  depends_on = [
+    azurerm_subscription.workload_sub,
+    azurerm_management_group.workload_mg
+  ]
 }
 
 # 5. Aliased Provider (Points specifically to the newly vended subscription)
