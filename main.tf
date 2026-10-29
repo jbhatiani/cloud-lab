@@ -43,8 +43,9 @@ resource "azurerm_management_group_subscription_association" "sub_assoc" {
 # 5. Aliased Provider (Points specifically to the newly vended subscription)
 provider "azurerm" {
   alias           = "new_sub"
-  features        = {}
   subscription_id = azurerm_subscription.workload_sub.subscription_id
+
+  features {}
 }
 
 # 6. Resource Group (Created inside the new subscription using the aliased provider)
