@@ -70,3 +70,15 @@ resource "azurerm_resource_group" "workload_rg" {
     azurerm_management_group_subscription_association.sub_assoc
   ]
 }
+
+# Automatically adopt the existing Management Group into Terraform state
+import {
+  to = azurerm_management_group.workload_mg
+  id = "/providers/Microsoft.Management/managementGroups/mg-webapp-prod"
+}
+
+# Automatically adopt the existing Subscription alias into Terraform state
+import {
+  to = azurerm_subscription.workload_sub
+  id = "/providers/Microsoft.Subscription/aliases/sub-webapp-prod-eus"
+}
