@@ -8,25 +8,25 @@ terraform {
   }
 }
 
-# 1. Default Provider (Authenticates via the App User logged in through GitHub Actions)
+# 1. Default Provider
 provider "azurerm" {
   features {}
 }
 
-# Variable receiving the billing scope securely from the GitHub Action environment
+# Variable receiving the billing scope securely from GitHub Action environment
 variable "billing_scope_id" {
   type        = string
   description = "The Resource ID of your EA Enrollment Account or MCA Billing Profile"
   sensitive   = true
 }
 
-# 2. Management Group (Organizes your hierarchy)
+# 2. Management Group
 resource "azurerm_management_group" "workload_mg" {
   name         = "mg-webapp-prod"
   display_name = "Production Web Applications"
 }
 
-# 3. Subscription (Vends a fresh subscription with a new alias)
+# 3. Subscription (Fresh subscription creation request)
 resource "azurerm_subscription" "workload_sub" {
   alias             = "sub-webapp-prod-eus-v2"
   subscription_name = "Production WebApp Subscription"
@@ -34,19 +34,18 @@ resource "azurerm_subscription" "workload_sub" {
   workload          = "Production"
 }
 
-# 4. Association with explicit dependency enforcement
+# 4. Association (Pulls the newly vended subscription into your MG)
 resource "azurerm_management_group_subscription_association" "sub_assoc" {
   management_group_id = azurerm_management_group.workload_mg.id
   subscription_id     = "/subscriptions/${azurerm_subscription.workload_sub.subscription_id}"
 
-  # Forces Terraform to wait until the subscription is fully vended before running the move
   depends_on = [
     azurerm_subscription.workload_sub,
     azurerm_management_group.workload_mg
   ]
 }
 
-# 5. Aliased Provider (Points specifically to the newly vended subscription)
+# 5. Aliased Provider (Points directly to the newly vended subscription)
 provider "azurerm" {
   alias           = "new_sub"
   subscription_id = azurerm_subscription.workload_sub.subscription_id
@@ -54,7 +53,7 @@ provider "azurerm" {
   features {}
 }
 
-# 6. Resource Group (Created inside the new subscription using the aliased provider)
+# 6. Resource Group (Created inside the new subscription)
 resource "azurerm_resource_group" "workload_rg" {
   provider = azurerm.new_sub
 
@@ -71,7 +70,11 @@ resource "azurerm_resource_group" "workload_rg" {
   ]
 }
 
-# Adopt the existing Management Group into Terraform state
+# ==========================================================
+# IMPORT EXISTING RESOURCES
+# ==========================================================
+
+# Adopt existing Management Group into state (prevents "already exists" error)
 import {
   to = azurerm_management_group.workload_mg
   id = "/providers/Microsoft.Management/managementGroups/mg-webapp-prod"
