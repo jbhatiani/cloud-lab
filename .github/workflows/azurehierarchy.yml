@@ -1,4 +1,4 @@
-name: "Deploy Azure Hierarchy"
+name: "Deploy Azure Hierarchy via Terraform"
 
 on:
   push:
@@ -10,31 +10,31 @@ permissions:
   contents: read
 
 jobs:
-  terraform:
-    name: "Provision Hierarchy"
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Authenticate to Azure (OIDC using your App User)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.9.0"
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
-        env:
-          # Automatically maps to "variable "billing_scope_id"" in your main.tf script
-          TF_VAR_billing_scope_id: ${{ secrets.AZURE_BILLING_SCOPE }}
+    terraform:
+      name: "Provision Hierarchy & Resource Group"
+      runs-on: ubuntu-latest
+  
+      steps:
+        - name: Checkout Code
+          uses: actions/checkout@v4
+  
+        - name: Authenticate to Azure (OIDC using your App User)
+          uses: azure/login@v2
+          with:
+            client-id: ${{ secrets.AZURE_CLIENT_ID }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_version: "1.9.0"
+  
+        - name: Terraform Init
+          run: terraform init
+  
+        - name: Terraform Apply
+          run: terraform apply -auto-approve
+          env:
+            # Passes your billing scope from GitHub Secrets into Terraform
+            TF_VAR_billing_scope_id: ${{ secrets.AZURE_BILLING_SCOPE }}
