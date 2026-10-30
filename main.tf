@@ -90,8 +90,14 @@ resource "azurerm_resource_group" "workload_rg" {
 # IMPORT EXISTING RESOURCES
 # ==========================================================
 
-# Adopt existing Management Group into state (prevents "already exists" error)
+# Adopt existing Management Group into state
 import {
   to = azurerm_management_group.workload_mg
   id = "/providers/Microsoft.Management/managementGroups/mg-webapp-prod"
+}
+
+# Adopt existing Subscription Alias into state (fixes the current error)
+import {
+  to = azurerm_subscription.workload_sub
+  id = "/providers/Microsoft.Subscription/aliases/sub-webapp-prod-cus-v3"
 }
