@@ -28,7 +28,7 @@ resource "azurerm_management_group" "workload_mg" {
 
 # 3. Subscription (Fresh subscription creation request)
 resource "azurerm_subscription" "workload_sub" {
-  alias             = "sub-webapp-prod-eus-v2"
+  alias             = "sub-webapp-prod-cus-v3"
   subscription_name = "Production WebApp Subscription"
   billing_scope_id  = var.billing_scope_id
   workload          = "Production"
@@ -57,8 +57,8 @@ provider "azurerm" {
 resource "azurerm_resource_group" "workload_rg" {
   provider = azurerm.new_sub
 
-  name     = "rg-webapp-prod-eus"
-  location = "eastus"
+  name     = "rg-webapp-prod-cus"
+  location = "centralus"
   tags = {
     Environment = "Production"
     Workload    = "Core Web Application"
