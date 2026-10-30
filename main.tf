@@ -45,6 +45,21 @@ resource "azurerm_management_group_subscription_association" "sub_assoc" {
   ]
 }
 
+# 4b. Refresh Azure CLI session cache for the new subscription ID
+resource "null_resource" "refresh_az_cli" {
+  triggers = {
+    subscription_id = azurerm_subscription.workload_sub.subscription_id
+  }
+
+  provisioner "local-exec" {
+    command = "az account set --subscription ${azurerm_subscription.workload_sub.subscription_id} || true"
+  }
+
+  depends_on = [
+    azurerm_subscription.workload_sub
+  ]
+}
+
 # 5. Aliased Provider (Points directly to the newly vended subscription)
 provider "azurerm" {
   alias           = "new_sub"
@@ -66,7 +81,8 @@ resource "azurerm_resource_group" "workload_rg" {
   }
 
   depends_on = [
-    azurerm_management_group_subscription_association.sub_assoc
+    azurerm_management_group_subscription_association.sub_assoc,
+    null_resource.refresh_az_cli
   ]
 }
 
