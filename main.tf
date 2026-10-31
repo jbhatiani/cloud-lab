@@ -26,12 +26,18 @@ resource "azurerm_management_group" "workload_mg" {
   display_name = "Production Web Applications"
 }
 
-# 3. Subscription (Fresh subscription creation request)
+# 3. Subscription (Fresh subscription creation request with extended timeout)
 resource "azurerm_subscription" "workload_sub" {
   alias             = "sub-webapp-prod-cus-v3"
   subscription_name = "Production WebApp Subscription"
   billing_scope_id  = var.billing_scope_id
   workload          = "Production"
+
+  timeouts {
+    create = "45m"
+    update = "45m"
+    delete = "45m"
+  }
 }
 
 # 4. Association (Pulls the newly vended subscription into your MG)
