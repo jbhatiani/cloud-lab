@@ -26,7 +26,7 @@ resource "azurerm_management_group" "workload_mg" {
   display_name = "Production Web Applications"
 }
 
-# 3. Subscription (Fresh subscription creation request with extended timeout)
+# 3. Subscription (Adopts or references the existing vended subscription alias)
 resource "azurerm_subscription" "workload_sub" {
   alias             = "sub-webapp-prod-cus-v3"
   subscription_name = "Production WebApp Subscription"
@@ -40,7 +40,7 @@ resource "azurerm_subscription" "workload_sub" {
   }
 }
 
-# 4. Association (Pulls the newly vended subscription into your MG)
+# 4. Association (Pulls the subscription into your MG)
 resource "azurerm_management_group_subscription_association" "sub_assoc" {
   management_group_id = azurerm_management_group.workload_mg.id
   subscription_id     = "/subscriptions/${azurerm_subscription.workload_sub.subscription_id}"
@@ -51,7 +51,7 @@ resource "azurerm_management_group_subscription_association" "sub_assoc" {
   ]
 }
 
-# 4b. Force Azure CLI cache refresh and sync for the new subscription ID
+# 4b. Handle GitHub Actions CI/CD context where az account clear wipes the login cache
 resource "null_resource" "refresh_az_cli" {
   triggers = {
     subscription_id = azurerm_subscription.workload_sub.subscription_id
@@ -59,10 +59,9 @@ resource "null_resource" "refresh_az_cli" {
 
   provisioner "local-exec" {
     command = <<EOT
-      echo "Waiting for subscription propagation..."
-      sleep 30
-      az account list --refresh
-      az account set --subscription ${azurerm_subscription.workload_sub.subscription_id}
+      echo "Ensuring Azure CLI is logged in and accounting for runner cleanup..."
+      az account set --subscription ${azurerm_subscription.workload_sub.subscription_id} || \
+      (az login --identity --allow-no-subscriptions && az account set --subscription ${azurerm_subscription.workload_sub.subscription_id})
     EOT
   }
 
@@ -71,7 +70,7 @@ resource "null_resource" "refresh_az_cli" {
   ]
 }
 
-# 5. Aliased Provider (Points directly to the newly vended subscription)
+# 5. Aliased Provider (Points directly to the subscription ID)
 provider "azurerm" {
   alias           = "new_sub"
   subscription_id = azurerm_subscription.workload_sub.subscription_id
@@ -97,11 +96,17 @@ resource "azurerm_resource_group" "workload_rg" {
 }
 
 # ==========================================================
-# IMPORT EXISTING RESOURCES
+# IMPORT EXISTING RESOURCES (MANDATORY FOR STATE SYNC)
 # ==========================================================
 
 # Adopt existing Management Group into state
 import {
   to = azurerm_management_group.workload_mg
   id = "/providers/Microsoft.Management/managementGroups/mg-webapp-prod"
+}
+
+# Adopt existing Subscription Alias into state (Prevents the "already exists" error)
+import {
+  to = azurerm_subscription.workload_sub
+  id = "/providers/Microsoft.Subscription/aliases/sub-webapp-prod-cus-v3"
 }
