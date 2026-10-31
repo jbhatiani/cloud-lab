@@ -51,18 +51,23 @@ resource "azurerm_management_group_subscription_association" "sub_assoc" {
   ]
 }
 
-# 4b. Refresh Azure CLI session cache for the new subscription ID
+# 4b. Force Azure CLI cache refresh and sync for the new subscription ID
 resource "null_resource" "refresh_az_cli" {
   triggers = {
     subscription_id = azurerm_subscription.workload_sub.subscription_id
   }
 
   provisioner "local-exec" {
-    command = "az account set --subscription ${azurerm_subscription.workload_sub.subscription_id} || true"
+    command = <<EOT
+      echo "Waiting for subscription propagation..."
+      sleep 30
+      az account list --refresh
+      az account set --subscription ${azurerm_subscription.workload_sub.subscription_id}
+    EOT
   }
 
   depends_on = [
-    azurerm_subscription.workload_sub
+    azurerm_management_group_subscription_association.sub_assoc
   ]
 }
 
@@ -87,7 +92,6 @@ resource "azurerm_resource_group" "workload_rg" {
   }
 
   depends_on = [
-    azurerm_management_group_subscription_association.sub_assoc,
     null_resource.refresh_az_cli
   ]
 }
@@ -96,7 +100,7 @@ resource "azurerm_resource_group" "workload_rg" {
 # IMPORT EXISTING RESOURCES
 # ==========================================================
 
-# Adopt existing Management Group into state (Keep this since the MG already exists)
+# Adopt existing Management Group into state
 import {
   to = azurerm_management_group.workload_mg
   id = "/providers/Microsoft.Management/managementGroups/mg-webapp-prod"
