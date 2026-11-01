@@ -1,18 +1,32 @@
+name: Deploy Azure Policies
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+
 jobs:
   terraform-deploy:
-      runs-on: ubuntu-latest
-      
-      # Automatically run all shell commands inside the terraform directory
-      defaults:
-        run:
-          working-directory: ./terraform
+    runs-on: ubuntu-latest
+    
+    # Automatically run all shell commands inside the terraform directory
+    defaults:
+      run:
+        working-directory: terraform
 
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-        - name: Terraform Init
-          run: terraform init
+      - name: Terraform Init
+        run: terraform init
 
-        - name: Terraform Apply
-          run: terraform apply -auto-approve
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
