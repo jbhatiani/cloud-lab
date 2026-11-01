@@ -12,9 +12,9 @@ terraform {
 
 provider "azurerm" {
   features {}
+  use_oidc = true
 }
 
-#test
 # ==============================================================================
 # 1. ALLOWED REGIONS POLICY
 # ==============================================================================
@@ -246,12 +246,8 @@ resource "azurerm_management_group_policy_assignment" "assign_standard_sku" {
   management_group_id  = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
   policy_definition_id = azurerm_policy_definition.standard_sku.id
   display_name         = "Enterprise Landing Zones - Standard SKU Assignment"
-<<<<<<< HEAD
 
   depends_on = [
     azurerm_policy_definition.standard_sku
   ]
 }
-=======
-}
->>>>>>> c48ca1e80c602ee99498ec172966e5bca2ffcdfb
