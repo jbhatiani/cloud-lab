@@ -51,6 +51,10 @@ resource "azurerm_management_group_policy_assignment" "assign_allowed_locations"
   management_group_id  = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
   policy_definition_id = azurerm_policy_definition.allowed_locations.id
   display_name         = "Enterprise Landing Zones - Allowed Regions Assignment"
+
+  depends_on = [
+    azurerm_policy_definition.allowed_locations
+  ]
 }
 
 # ==============================================================================
@@ -101,6 +105,10 @@ resource "azurerm_management_group_policy_assignment" "assign_forbidden_username
   management_group_id  = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
   policy_definition_id = azurerm_policy_definition.forbidden_usernames.id
   display_name         = "Enterprise Landing Zones - Forbidden Usernames Assignment"
+
+  depends_on = [
+    azurerm_policy_definition.forbidden_usernames
+  ]
 }
 
 # ==============================================================================
@@ -148,6 +156,10 @@ resource "azurerm_management_group_policy_assignment" "assign_mandatory_tags" {
   management_group_id  = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
   policy_definition_id = azurerm_policy_definition.mandatory_tags.id
   display_name         = "Enterprise Landing Zones - Mandatory Tags Assignment"
+
+  depends_on = [
+    azurerm_policy_definition.mandatory_tags
+  ]
 }
 
 # ==============================================================================
@@ -187,6 +199,10 @@ resource "azurerm_management_group_policy_assignment" "assign_public_ip_allocati
   management_group_id  = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
   policy_definition_id = azurerm_policy_definition.public_ip_allocation.id
   display_name         = "Enterprise Landing Zones - Static Public IP Assignment"
+
+  depends_on = [
+    azurerm_policy_definition.public_ip_allocation
+  ]
 }
 
 # ==============================================================================
@@ -229,4 +245,8 @@ resource "azurerm_management_group_policy_assignment" "assign_standard_sku" {
   management_group_id  = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
   policy_definition_id = azurerm_policy_definition.standard_sku.id
   display_name         = "Enterprise Landing Zones - Standard SKU Assignment"
+
+  depends_on = [
+    azurerm_policy_definition.standard_sku
+  ]
 }
