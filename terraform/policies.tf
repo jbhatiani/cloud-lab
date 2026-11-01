@@ -221,17 +221,30 @@ resource "azurerm_policy_definition" "standard_sku" {
 
   policy_rule = jsonencode({
     "if" = {
-      "allOf" = [
+      "anyOf" = [
         {
-          "field" = "type",
-          "in"    = [
-            "Microsoft.Network/loadBalancers",
-            "Microsoft.Network/publicIPAddresses"
+          "allOf" = [
+            {
+              "field"  = "type",
+              "equals" = "Microsoft.Network/publicIPAddresses"
+            },
+            {
+              "field"     = "sku.name",
+              "notEquals" = "Standard"
+            }
           ]
         },
         {
-          "field"     = "sku.name",
-          "notEquals" = "Standard"
+          "allOf" = [
+            {
+              "field"  = "type",
+              "equals" = "Microsoft.Network/loadBalancers"
+            },
+            {
+              "field"     = "sku.name",
+              "notEquals" = "Standard"
+            }
+          ]
         }
       ]
     },
