@@ -16,7 +16,6 @@ jobs:
   terraform-deploy:
     runs-on: ubuntu-latest
     
-    # Automatically run all shell commands inside the terraform directory
     defaults:
       run:
         working-directory: terraform
