@@ -26,7 +26,7 @@ resource "azurerm_policy_definition" "allowed_locations" {
   display_name = "Allowed Azure Locations"
   description  = "Restricts resource deployment to specified approved regions."
 
-  management_group_id = "/providers/Microsoft.Management/managementGroups/Prod"
+  management_group_id = "/providers/Microsoft.Management/managementGroups/New-Prod"
 
   policy_rule = jsonencode({
     "if" = {
@@ -49,9 +49,9 @@ resource "azurerm_policy_definition" "allowed_locations" {
 
 resource "azurerm_management_group_policy_assignment" "assign_allowed_locations" {
   name                 = "asgn-allow-regions"
-  management_group_id  = "/providers/Microsoft.Management/managementGroups/Prod"
+  management_group_id  = "/providers/Microsoft.Management/managementGroups/New-Prod"
   policy_definition_id = azurerm_policy_definition.allowed_locations.id
-  display_name         = "Prod - Allowed Regions Assignment"
+  display_name         = "New-Prod - Allowed Regions Assignment"
 
   depends_on = [
     azurerm_policy_definition.allowed_locations
@@ -69,7 +69,7 @@ resource "azurerm_policy_definition" "forbidden_usernames" {
   display_name = "Deny Forbidden Admin Usernames"
   description  = "Blocks Virtual Machines from using default or high-risk administrator usernames."
 
-  management_group_id = "/providers/Microsoft.Management/managementGroups/Prod"
+  management_group_id = "/providers/Microsoft.Management/managementGroups/New-Prod"
 
   policy_rule = jsonencode({
     "if" = {
@@ -103,9 +103,9 @@ resource "azurerm_policy_definition" "forbidden_usernames" {
 
 resource "azurerm_management_group_policy_assignment" "assign_forbidden_usernames" {
   name                 = "asgn-no-bad-users"
-  management_group_id  = "/providers/Microsoft.Management/managementGroups/Prod"
+  management_group_id  = "/providers/Microsoft.Management/managementGroups/New-Prod"
   policy_definition_id = azurerm_policy_definition.forbidden_usernames.id
-  display_name         = "Prod - Forbidden Usernames Assignment"
+  display_name         = "New-Prod - Forbidden Usernames Assignment"
 
   depends_on = [
     azurerm_policy_definition.forbidden_usernames
@@ -123,7 +123,7 @@ resource "azurerm_policy_definition" "mandatory_tags" {
   display_name = "Enforce Mandatory Cost-Allocation Tags"
   description  = "Denies resource creation if CostCenter, Environment, Owner, or Project tags are missing."
 
-  management_group_id = "/providers/Microsoft.Management/managementGroups/Prod"
+  management_group_id = "/providers/Microsoft.Management/managementGroups/New-Prod"
 
   policy_rule = jsonencode({
     "if" = {
@@ -154,9 +154,9 @@ resource "azurerm_policy_definition" "mandatory_tags" {
 
 resource "azurerm_management_group_policy_assignment" "assign_mandatory_tags" {
   name                 = "asgn-mandatory-tags"
-  management_group_id  = "/providers/Microsoft.Management/managementGroups/Prod"
+  management_group_id  = "/providers/Microsoft.Management/managementGroups/New-Prod"
   policy_definition_id = azurerm_policy_definition.mandatory_tags.id
-  display_name         = "Prod - Mandatory Tags Assignment"
+  display_name         = "New-Prod - Mandatory Tags Assignment"
 
   depends_on = [
     azurerm_policy_definition.mandatory_tags
@@ -174,7 +174,7 @@ resource "azurerm_policy_definition" "public_ip_allocation" {
   display_name = "Enforce Static Public IP Allocation"
   description  = "Denies Public IP addresses that do not use an explicit 'Static' allocation method."
 
-  management_group_id = "/providers/Microsoft.Management/managementGroups/Prod"
+  management_group_id = "/providers/Microsoft.Management/managementGroups/New-Prod"
 
   policy_rule = jsonencode({
     "if" = {
@@ -197,9 +197,9 @@ resource "azurerm_policy_definition" "public_ip_allocation" {
 
 resource "azurerm_management_group_policy_assignment" "assign_public_ip_allocation" {
   name                 = "asgn-static-pip"
-  management_group_id  = "/providers/Microsoft.Management/managementGroups/Prod"
+  management_group_id  = "/providers/Microsoft.Management/managementGroups/New-Prod"
   policy_definition_id = azurerm_policy_definition.public_ip_allocation.id
-  display_name         = "Prod - Static Public IP Assignment"
+  display_name         = "New-Prod - Static Public IP Assignment"
 
   depends_on = [
     azurerm_policy_definition.public_ip_allocation
@@ -217,7 +217,7 @@ resource "azurerm_policy_definition" "standard_sku" {
   display_name = "Enforce Standard SKU for Load Balancers and Public IPs"
   description  = "Denies Load Balancers and Public IP addresses configured with Basic or missing SKUs."
 
-  management_group_id = "/providers/Microsoft.Management/managementGroups/Prod"
+  management_group_id = "/providers/Microsoft.Management/managementGroups/New-Prod"
 
   policy_rule = jsonencode({
     "if" = {
@@ -256,9 +256,9 @@ resource "azurerm_policy_definition" "standard_sku" {
 
 resource "azurerm_management_group_policy_assignment" "assign_standard_sku" {
   name                 = "asgn-standard-sku"
-  management_group_id  = "/providers/Microsoft.Management/managementGroups/Prod"
+  management_group_id  = "/providers/Microsoft.Management/managementGroups/New-Prod"
   policy_definition_id = azurerm_policy_definition.standard_sku.id
-  display_name         = "Prod - Standard SKU Assignment"
+  display_name         = "New-Prod - Standard SKU Assignment"
 
   depends_on = [
     azurerm_policy_definition.standard_sku
