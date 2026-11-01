@@ -47,7 +47,7 @@ resource "azurerm_policy_definition" "allowed_locations" {
 }
 
 resource "azurerm_management_group_policy_assignment" "assign_allowed_locations" {
-  name                 = "assign-allowed-locations"
+  name                 = "asgn-allow-regions"
   management_group_id  = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
   policy_definition_id = azurerm_policy_definition.allowed_locations.id
   display_name         = "Enterprise Landing Zones - Allowed Regions Assignment"
@@ -97,13 +97,12 @@ resource "azurerm_policy_definition" "forbidden_usernames" {
 }
 
 resource "azurerm_management_group_policy_assignment" "assign_forbidden_usernames" {
-  name                 = "assign-forbidden-usernames"
+  name                 = "asgn-no-bad-users"
   management_group_id  = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
   policy_definition_id = azurerm_policy_definition.forbidden_usernames.id
   display_name         = "Enterprise Landing Zones - Forbidden Usernames Assignment"
 }
 
-#Test
 # ==============================================================================
 # 3. MANDATORY TAGS POLICY
 # ==============================================================================
@@ -145,7 +144,7 @@ resource "azurerm_policy_definition" "mandatory_tags" {
 }
 
 resource "azurerm_management_group_policy_assignment" "assign_mandatory_tags" {
-  name                 = "assign-mandatory-tags"
+  name                 = "asgn-mandatory-tags"
   management_group_id  = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
   policy_definition_id = azurerm_policy_definition.mandatory_tags.id
   display_name         = "Enterprise Landing Zones - Mandatory Tags Assignment"
@@ -184,7 +183,7 @@ resource "azurerm_policy_definition" "public_ip_allocation" {
 }
 
 resource "azurerm_management_group_policy_assignment" "assign_public_ip_allocation" {
-  name                 = "assign-public-ip-allocation"
+  name                 = "asgn-static-pip"
   management_group_id  = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
   policy_definition_id = azurerm_policy_definition.public_ip_allocation.id
   display_name         = "Enterprise Landing Zones - Static Public IP Assignment"
@@ -226,7 +225,7 @@ resource "azurerm_policy_definition" "standard_sku" {
 }
 
 resource "azurerm_management_group_policy_assignment" "assign_standard_sku" {
-  name                 = "assign-standard-sku"
+  name                 = "asgn-standard-sku"
   management_group_id  = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
   policy_definition_id = azurerm_policy_definition.standard_sku.id
   display_name         = "Enterprise Landing Zones - Standard SKU Assignment"
