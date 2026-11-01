@@ -103,6 +103,7 @@ resource "azurerm_management_group_policy_assignment" "assign_forbidden_username
   display_name         = "Enterprise Landing Zones - Forbidden Usernames Assignment"
 }
 
+#Test
 # ==============================================================================
 # 3. MANDATORY TAGS POLICY
 # ==============================================================================
