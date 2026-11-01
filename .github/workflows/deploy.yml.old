@@ -1,0 +1,42 @@
+name: Enterprise Landing Zone CI-CD
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  validate-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init & Plan
+        run: |
+          cd terraform
+          terraform init
+          terraform plan -out=tfplan.binary
+          terraform show -json tfplan.binary > tfplan.json
+
+      - name: Run Conftest OPA Policy Check (Pre-Deployment Gate)
+        uses: instrumenta/conftest-action@master
+        with:
+          files: terraform/tfplan.json
+          policy: policies/
+          package: azure.deployment
+
+      - name: Terraform Apply (Runs only on push/merge to main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          cd terraform
+          terraform apply -auto-approve tfplan.binary
