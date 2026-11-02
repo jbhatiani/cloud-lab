@@ -31,12 +31,15 @@ variable "admin_password" {
   description = "VM Administrator Password"
 }
 
-# Define mandatory cost-allocation tags centrally to satisfy Azure Policy
+# Expanded cost-allocation tags to cover common enterprise policy schemas
 locals {
   common_tags = {
-    Environment = "Production"
-    CostCenter  = "IT-Infra"
-    Owner       = "SystemsEngineering"
+    Environment      = "prod"
+    cost-center      = "IT-Infra"
+    CostCenter       = "IT-Infra"
+    Owner            = "SystemsEngineering"
+    Project          = "CloudLab"
+    ManagedBy        = "Terraform"
   }
 }
 
