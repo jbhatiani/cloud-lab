@@ -14,7 +14,7 @@ provider "azurerm" {
 
 variable "location" {
   type        = string
-  default     = "eastus"
+  default     = "eastus2"
   description = "Target Azure region"
 }
 
@@ -33,7 +33,7 @@ variable "admin_password" {
 
 # Core Resource Group
 resource "azurerm_resource_group" "rg" {
-  name     = "rg-cloudlab-prod-01"
+  name     = "rg-newprod"
   location = var.location
 }
 
@@ -130,7 +130,7 @@ resource "azurerm_network_interface" "vm02_nic" {
   }
 }
 
-# Virtual Machines (Explicitly depends on the firewall to prevent subnet-locking/race conditions)
+# Virtual Machines (Explicitly depends on the firewall)
 resource "azurerm_windows_virtual_machine" "vm01" {
   name                = "TestVM01"
   resource_group_name = azurerm_resource_group.rg.name
