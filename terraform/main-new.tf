@@ -31,38 +31,37 @@ variable "admin_password" {
   description = "VM Administrator Password"
 }
 
-# Core Resource Group
-resource "azurerm_resource_group" "rg" {
-  name     = "rg-newprod"
-  location = var.location
+# Reference the existing Resource Group instead of creating a new one
+data "azurerm_resource_group" "rg" {
+  name = "rg-newprod"
 }
 
 # Virtual Network
 resource "azurerm_virtual_network" "vnet" {
   name                = "Site1-vnet"
   address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
 }
 
 # Subnets
 resource "azurerm_subnet" "web" {
   name                 = "Web"
-  resource_group_name  = azurerm_resource_group.rg.name
+  resource_group_name  = data.azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
 }
 
 resource "azurerm_subnet" "fw_subnet" {
   name                 = "AzureFirewallSubnet"
-  resource_group_name  = azurerm_resource_group.rg.name
+  resource_group_name  = data.azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.6.0/26"]
 }
 
 resource "azurerm_subnet" "fw_mgmt_subnet" {
   name                 = "AzureFirewallManagementSubnet"
-  resource_group_name  = azurerm_resource_group.rg.name
+  resource_group_name  = data.azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.7.0/26"]
 }
@@ -70,16 +69,16 @@ resource "azurerm_subnet" "fw_mgmt_subnet" {
 # Public IPs for Firewall
 resource "azurerm_public_ip" "fw_pip" {
   name                = "Basic-Firewall-pip"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
   allocation_method   = "Static"
   sku                 = "Standard"
 }
 
 resource "azurerm_public_ip" "fw_mgmt_pip" {
   name                = "AzureFirewallManagement-pip"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
   allocation_method   = "Static"
   sku                 = "Standard"
 }
@@ -87,8 +86,8 @@ resource "azurerm_public_ip" "fw_mgmt_pip" {
 # Azure Firewall
 resource "azurerm_firewall" "fw" {
   name                = "Basic-Firewall"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
   sku_name            = "AZFW_VNet"
   sku_tier            = "Basic"
 
@@ -108,8 +107,8 @@ resource "azurerm_firewall" "fw" {
 # Network Interfaces
 resource "azurerm_network_interface" "vm01_nic" {
   name                = "TestVM01-nic"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
 
   ip_configuration {
     name                          = "ipconfig1"
@@ -120,8 +119,8 @@ resource "azurerm_network_interface" "vm01_nic" {
 
 resource "azurerm_network_interface" "vm02_nic" {
   name                = "TestVM02-nic"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
 
   ip_configuration {
     name                          = "ipconfig1"
@@ -133,8 +132,8 @@ resource "azurerm_network_interface" "vm02_nic" {
 # Virtual Machines (Explicitly depends on the firewall)
 resource "azurerm_windows_virtual_machine" "vm01" {
   name                = "TestVM01"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
   size                = "Standard_D2as_v4"
   admin_username      = var.admin_username
   admin_password      = var.admin_password
@@ -162,8 +161,8 @@ resource "azurerm_windows_virtual_machine" "vm01" {
 
 resource "azurerm_windows_virtual_machine" "vm02" {
   name                = "TestVM02"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
   size                = "Standard_D2as_v4"
   admin_username      = var.admin_username
   admin_password      = var.admin_password
