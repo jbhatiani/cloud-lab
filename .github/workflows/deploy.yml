@@ -3,14 +3,13 @@ name: Deploy Azure Infrastructure via Terraform
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # Allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   terraform-deploy:
     name: Terraform Init, Plan & Apply
     runs-on: ubuntu-latest
     
-    # Required permissions for Azure OIDC login
     permissions:
       id-token: write
       contents: read
@@ -29,7 +28,7 @@ jobs:
       - name: Setup Terraform Engine
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.6.0"
+          terraform_version: "1.6.6" # 👈 Uses a patched engine version
 
       - name: Terraform Init
         run: terraform init -upgrade
