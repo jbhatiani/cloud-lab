@@ -10,14 +10,6 @@ terraform {
 
 provider "azurerm" {
   features {}
-
-  default_tags = {
-    tags = {
-      Environment = "Production"
-      CostCenter  = "IT-Infra"
-      Owner       = "SystemsEngineering"
-    }
-  }
 }
 
 variable "location" {
@@ -39,6 +31,15 @@ variable "admin_password" {
   description = "VM Administrator Password"
 }
 
+# Define mandatory cost-allocation tags centrally to satisfy Azure Policy
+locals {
+  common_tags = {
+    Environment = "Production"
+    CostCenter  = "IT-Infra"
+    Owner       = "SystemsEngineering"
+  }
+}
+
 # Reference the existing Resource Group
 data "azurerm_resource_group" "rg" {
   name = "rg-newprod"
@@ -50,6 +51,7 @@ resource "azurerm_virtual_network" "vnet" {
   address_space       = ["10.0.0.0/16"]
   location            = data.azurerm_resource_group.rg.location
   resource_group_name = data.azurerm_resource_group.rg.name
+  tags                = local.common_tags
 }
 
 # Subnets
@@ -81,6 +83,7 @@ resource "azurerm_public_ip" "fw_pip" {
   resource_group_name = data.azurerm_resource_group.rg.name
   allocation_method   = "Static"
   sku                 = "Standard"
+  tags                = local.common_tags
 }
 
 resource "azurerm_public_ip" "fw_mgmt_pip" {
@@ -89,6 +92,7 @@ resource "azurerm_public_ip" "fw_mgmt_pip" {
   resource_group_name = data.azurerm_resource_group.rg.name
   allocation_method   = "Static"
   sku                 = "Standard"
+  tags                = local.common_tags
 }
 
 # Azure Firewall
@@ -98,6 +102,7 @@ resource "azurerm_firewall" "fw" {
   resource_group_name = data.azurerm_resource_group.rg.name
   sku_name            = "AZFW_VNet"
   sku_tier            = "Basic"
+  tags                = local.common_tags
 
   ip_configuration {
     name                 = "firewall-ipconfig"
@@ -117,6 +122,7 @@ resource "azurerm_network_interface" "vm01_nic" {
   name                = "TestVM01-nic"
   location            = data.azurerm_resource_group.rg.location
   resource_group_name = data.azurerm_resource_group.rg.name
+  tags                = local.common_tags
 
   ip_configuration {
     name                          = "ipconfig1"
@@ -129,6 +135,7 @@ resource "azurerm_network_interface" "vm02_nic" {
   name                = "TestVM02-nic"
   location            = data.azurerm_resource_group.rg.location
   resource_group_name = data.azurerm_resource_group.rg.name
+  tags                = local.common_tags
 
   ip_configuration {
     name                          = "ipconfig1"
@@ -145,6 +152,7 @@ resource "azurerm_windows_virtual_machine" "vm01" {
   size                = "Standard_D2as_v4"
   admin_username      = var.admin_username
   admin_password      = var.admin_password
+  tags                = local.common_tags
   network_interface_ids = [
     azurerm_network_interface.vm01_nic.id,
   ]
@@ -174,6 +182,7 @@ resource "azurerm_windows_virtual_machine" "vm02" {
   size                = "Standard_D2as_v4"
   admin_username      = var.admin_username
   admin_password      = var.admin_password
+  tags                = local.common_tags
   network_interface_ids = [
     azurerm_network_interface.vm02_nic.id,
   ]
