@@ -11,9 +11,7 @@ terraform {
 provider "azurerm" {
   features {}
 
-  # Automatically injects mandatory cost-allocation tags into all resources
-  # to satisfy the New-Prod - Mandatory Tags Assignment policy
-  default_tags {
+  default_tags = {
     tags = {
       Environment = "Production"
       CostCenter  = "IT-Infra"
