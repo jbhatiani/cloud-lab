@@ -10,6 +10,16 @@ terraform {
 
 provider "azurerm" {
   features {}
+
+  # Automatically injects mandatory cost-allocation tags into all resources
+  # to satisfy the New-Prod - Mandatory Tags Assignment policy
+  default_tags {
+    tags = {
+      Environment = "Production"
+      CostCenter  = "IT-Infra"
+      Owner       = "SystemsEngineering"
+    }
+  }
 }
 
 variable "location" {
@@ -31,7 +41,7 @@ variable "admin_password" {
   description = "VM Administrator Password"
 }
 
-# Reference the existing Resource Group instead of creating a new one
+# Reference the existing Resource Group
 data "azurerm_resource_group" "rg" {
   name = "rg-newprod"
 }
