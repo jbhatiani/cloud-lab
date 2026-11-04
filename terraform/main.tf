@@ -222,3 +222,18 @@ tagName = { value = "Environment" }
 effect  = { value = "Audit" }
 })
 }
+
+import {
+  to = azurerm_resource_group.target
+  id = "/subscriptions/399e8de6-c59b-4cd5-80fe-41eef17c3aad/resourceGroups/rg-webapp-prod-cus"
+}
+
+import {
+  to = azurerm_policy_definition.require_tag
+  id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policyDefinitions/require-environment-tag"
+}
+
+import {
+  to = azurerm_policy_definition.allowed_locations
+  id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policyDefinitions/allowed-locations-policy"
+}
