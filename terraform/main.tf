@@ -306,26 +306,6 @@ import {
 }
 
 import {
-  to = azurerm_policy_definition.forbidden_usernames
-  id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policyDefinitions/forbidden-admin-usernames"
-}
-
-import {
-  to = azurerm_policy_definition.min_password_length
-  id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policyDefinitions/min-admin-password-length"
-}
-
-import {
-  to = azurerm_policy_definition.infrastructure_encryption
-  id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policyDefinitions/require-infrastructure-encryption"
-}
-
-import {
-  to = azurerm_policy_definition.network_standard_sku
-  id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policyDefinitions/require-standard-sku-public-ip"
-}
-
-import {
   to = azurerm_policy_set_definition.elz_governance_initiative
   id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policySetDefinitions/elz-governance-baseline"
 }
