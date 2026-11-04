@@ -223,6 +223,8 @@ effect  = { value = "Audit" }
 })
 }
 
+# --- Complete Import Block Set for Pre-existing Azure Resources ---
+
 import {
   to = azurerm_resource_group.target
   id = "/subscriptions/399e8de6-c59b-4cd5-80fe-41eef17c3aad/resourceGroups/rg-webapp-prod-cus"
@@ -244,6 +246,16 @@ import {
 }
 
 import {
+  to = azurerm_management_group_policy_assignment.mg_assignment
+  id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policyAssignments/elz-mg-gov-baseline"
+}
+
+import {
   to = azurerm_subscription_policy_assignment.sub_assignment
   id = "/subscriptions/399e8de6-c59b-4cd5-80fe-41eef17c3aad/providers/Microsoft.Authorization/policyAssignments/elz-sub-location-check"
+}
+
+import {
+  to = azurerm_resource_group_policy_assignment.rg_assignment
+  id = "/subscriptions/399e8de6-c59b-4cd5-80fe-41eef17c3aad/resourceGroups/rg-webapp-prod-cus/providers/Microsoft.Authorization/policyAssignments/elz-rg-tag-audit"
 }
