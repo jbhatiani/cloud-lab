@@ -19,7 +19,7 @@ default     = "rg-webapp-prod-cus"
 variable "location" {
 type        = string
 description = "Primary Azure region for policy identity metadata."
-default     = "eastus"
+default     = "centralus"
 }
 
 variable "policy_effect" {
