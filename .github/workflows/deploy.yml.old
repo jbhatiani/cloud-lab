@@ -1,0 +1,60 @@
+name: Deploy Azure Infrastructure via Terraform
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  terraform-deploy:
+    name: Terraform Init, Plan & Apply
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      # 1. Download previous state file if it exists from the last run
+      - name: Download Terraform State Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-state
+          path: ./terraform
+        continue-on-error: true # Prevents failure on the very first run when no state exists yet
+
+      - name: Authenticate to Azure via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          
+
+      - name: Setup Terraform Engine
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.6"
+
+      - name: Terraform Init
+        run: terraform init -upgrade
+        working-directory: ./terraform
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+        working-directory: ./terraform
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+        working-directory: ./terraform
+
+      # 2. Upload the updated state file back to GitHub Actions storage (Retained for 90 days)
+      - name: Upload Terraform State Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-state
+          path: ./terraform/terraform.tfstate
+          retency-days: 90

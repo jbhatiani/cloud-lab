@@ -1,4 +1,4 @@
-Configure Terraform Provider Requirements
+#Configure Terraform Provider Requirements
 
 terraform {
 required_version = ">= 1.5.0"
@@ -14,13 +14,13 @@ provider "azurerm" {
 features {}
 }
 
-==============================================================================
+#==============================================================================
 
-DATA SOURCES: Reference EXISTING Azure Scopes (Read-Only)
+#DATA SOURCES: Reference EXISTING Azure Scopes (Read-Only)
 
-Terraform will NOT attempt to create, modify, or delete these scopes.
+#Terraform will NOT attempt to create, modify, or delete these scopes.
 
-==============================================================================
+#==============================================================================
 
 1. Existing Management Group
 
@@ -28,25 +28,25 @@ data "azurerm_management_group" "elz" {
 name = var.management_group_id
 }
 
-2. Existing Target Subscription
+#2. Existing Target Subscription
 
 data "azurerm_subscription" "target" {
 subscription_id = var.subscription_id
 }
 
-3. Existing Target Resource Group
+#3. Existing Target Resource Group
 
 data "azurerm_resource_group" "target" {
 name = var.resource_group_name
 }
 
-==============================================================================
+#==============================================================================
 
-NEW POLICY DEFINITIONS (Created at Management Group level)
+#NEW POLICY DEFINITIONS (Created at Management Group level)
 
-==============================================================================
+#==============================================================================
 
-Custom Policy Definition 1: Require Environment Tag
+#Custom Policy Definition 1: Require Environment Tag
 
 resource "azurerm_policy_definition" "require_tag" {
 name                = "require-environment-tag"
@@ -84,7 +84,7 @@ defaultValue  = "Audit"
 })
 }
 
-Custom Policy Definition 2: Restrict Allowed Locations
+#Custom Policy Definition 2: Restrict Allowed Locations
 
 resource "azurerm_policy_definition" "allowed_locations" {
 name                = "allowed-locations-policy"
@@ -117,11 +117,11 @@ defaultValue = ["eastus", "eastus2"]
 })
 }
 
-==============================================================================
+#==============================================================================
 
-NEW POLICY SET DEFINITION (Initiative)
+#NEW POLICY SET DEFINITION (Initiative)
 
-==============================================================================
+#==============================================================================
 
 resource "azurerm_policy_set_definition" "elz_governance_initiative" {
 name                = "elz-governance-baseline"
@@ -135,7 +135,7 @@ category = "Governance"
 version  = "1.0.0"
 })
 
-Referencing Definition 1
+#Referencing Definition 1
 
 policy_definition_reference {
 policy_definition_id = azurerm_policy_definition.require_tag.id
@@ -145,7 +145,7 @@ effect  = { value = "[parameters('tagEffect')]" }
 })
 }
 
-Referencing Definition 2
+#Referencing Definition 2
 
 policy_definition_reference {
 policy_definition_id = azurerm_policy_definition.allowed_locations.id
@@ -167,13 +167,13 @@ defaultValue = ["eastus", "eastus2"]
 })
 }
 
-==============================================================================
+#==============================================================================
 
-NEW POLICY ASSIGNMENTS AT EXISTING SCOPES
+#NEW POLICY ASSIGNMENTS AT EXISTING SCOPES
 
-==============================================================================
+#==============================================================================
 
-1. Primary Assignment at Management Group Scope (Inherits to all child Subs & RGs)
+#1. Primary Assignment at Management Group Scope (Inherits to all child Subs & RGs)
 
 resource "azurerm_management_group_policy_assignment" "mg_assignment" {
 name                 = "elz-mg-gov-baseline"
@@ -193,7 +193,7 @@ allowedLocationsList = { value = ["eastus", "eastus2"] }
 })
 }
 
-2. Targeted Assignment at Existing Subscription Scope (Optional Specific Enforcement)
+#2. Targeted Assignment at Existing Subscription Scope (Optional Specific Enforcement)
 
 resource "azurerm_subscription_policy_assignment" "sub_assignment" {
 name                 = "elz-sub-location-check"
@@ -207,7 +207,7 @@ allowedLocations = { value = ["eastus", "eastus2"] }
 })
 }
 
-3. Granular Assignment at Existing Resource Group Scope (Optional Specific Enforcement)
+#3. Granular Assignment at Existing Resource Group Scope (Optional Specific Enforcement)
 
 resource "azurerm_resource_group_policy_assignment" "rg_assignment" {
 name                 = "elz-rg-tag-audit"
