@@ -237,3 +237,13 @@ import {
   to = azurerm_policy_definition.allowed_locations
   id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policyDefinitions/allowed-locations-policy"
 }
+
+import {
+  to = azurerm_policy_set_definition.elz_governance_initiative
+  id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policySetDefinitions/elz-governance-baseline"
+}
+
+import {
+  to = azurerm_subscription_policy_assignment.sub_assignment
+  id = "/subscriptions/399e8de6-c59b-4cd5-80fe-41eef17c3aad/providers/Microsoft.Authorization/policyAssignments/elz-sub-location-check"
+}
