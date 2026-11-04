@@ -1,229 +1,293 @@
-#Configure Terraform Provider Requirements
+# ==============================================================================
+# 1. PROVIDER & DATA SOURCES
+# ==============================================================================
 
 terraform {
-required_version = ">= 1.5.0"
-required_providers {
-azurerm = {
-source  = "hashicorp/azurerm"
-version = "~> 3.90"
-}
-}
+  required_version = ">= 1.5.0"
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
+    }
+  }
 }
 
 provider "azurerm" {
-features {}
+  features {}
 }
 
-#==============================================================================
-
-#DATA SOURCES: Reference EXISTING Azure Scopes (Read-Only)
-
-#Terraform will NOT attempt to create, modify, or delete these scopes.
-
-#==============================================================================
-
-#1. Existing Management Group
-
-data "azurerm_management_group" "elz" {
-name = var.management_group_id
+# Target Management Group Scope
+data "azurerm_management_group" "target" {
+  name = "mg-enterprise-landing-zones"
 }
 
-#2. Existing Target Subscription
-
-data "azurerm_subscription" "target" {
-subscription_id = var.subscription_id
-}
-
-#3. Target Resource Group Scope (Managed Resource)
+# ==============================================================================
+# 2. TARGET RESOURCE GROUP
+# ==============================================================================
 
 resource "azurerm_resource_group" "target" {
-  name     = var.resource_group_name
-  location = "centralus" # Matches the region where your RG currently lives
+  name     = "rg-webapp-prod-cus"
+  location = "centralus"
+
+  tags = {
+    Environment = "Production"
+    Project     = "LandingZone"
+    Owner       = "SysEng"
+    CostCenter  = "IT-101"
+  }
 }
 
-#==============================================================================
+# ==============================================================================
+# 3. AZURE POLICY DEFINITIONS (Rego Policy Translations)
+# ==============================================================================
 
-#NEW POLICY DEFINITIONS (Created at Management Group level)
-
-#==============================================================================
-
-#Custom Policy Definition 1: Require Environment Tag
-
+# Custom Policy 1: Mandatory Environment Tag
 resource "azurerm_policy_definition" "require_tag" {
-name                = "require-environment-tag"
-policy_type         = "Custom"
-mode                = "Indexed"
-display_name        = "Require Environment Tag on Resources"
-description         = "Enforces the presence of an Environment tag on resources."
-management_group_id = data.azurerm_management_group.elz.id
+  name                = "require-environment-tag"
+  policy_type         = "Custom"
+  mode                = "Indexed"
+  display_name        = "Require Environment Tag"
+  description         = "Enforces the mandatory Environment tag on all resources."
+  management_group_id = data.azurerm_management_group.target.id
 
-metadata = jsonencode({
-category = "Governance"
-version  = "1.0.0"
-})
-
-policy_rule = jsonencode({
-if = {
-field  = "[concat('tags[', parameters('tagName'), ']')]"
-exists = "false"
+  policy_rule = <<POLICY_RULE
+{
+  "if": {
+    "field": "tags['Environment']",
+    "exists": "false"
+  },
+  "then": {
+    "effect": "deny"
+  }
 }
-then = {
-effect = "[parameters('effect')]"
-}
-})
-
-parameters = jsonencode({
-tagName = {
-type         = "String"
-defaultValue = "Environment"
-}
-effect = {
-type          = "String"
-allowedValues = ["Audit", "Deny", "Disabled"]
-defaultValue  = "Audit"
-}
-})
+POLICY_RULE
 }
 
-#Custom Policy Definition 2: Restrict Allowed Locations
-
+# Custom Policy 2: Allowed Locations
 resource "azurerm_policy_definition" "allowed_locations" {
-name                = "allowed-locations-policy"
-policy_type         = "Custom"
-mode                = "Indexed"
-display_name        = "Allowed Azure Locations"
-description         = "Restricts resource deployments to specified Azure regions."
-management_group_id = data.azurerm_management_group.elz.id
+  name                = "allowed-locations-policy"
+  policy_type         = "Custom"
+  mode                = "Indexed"
+  display_name        = "Allowed Azure Locations"
+  description         = "Restricts resource deployments to approved Azure regions."
+  management_group_id = data.azurerm_management_group.target.id
 
-metadata = jsonencode({
-category = "Governance"
-version  = "1.0.0"
-})
-
-policy_rule = jsonencode({
-if = {
-field    = "location"
-notIn    = "[parameters('allowedLocations')]"
+  policy_rule = <<POLICY_RULE
+{
+  "if": {
+    "field": "location",
+    "notIn": ["westus", "eastus2", "centralus"]
+  },
+  "then": {
+    "effect": "deny"
+  }
 }
-then = {
-effect = "Deny"
-}
-})
-
-parameters = jsonencode({
-allowedLocations = {
-type         = "Array"
-defaultValue = ["eastus", "eastus2"]
-}
-})
+POLICY_RULE
 }
 
-#==============================================================================
+# Custom Policy 3: Forbidden Admin Usernames
+resource "azurerm_policy_definition" "forbidden_usernames" {
+  name                = "forbidden-admin-usernames"
+  policy_type         = "Custom"
+  mode                = "Indexed"
+  display_name        = "Audit Forbidden Admin Usernames"
+  description         = "Audits virtual machines using common forbidden administrative usernames."
+  management_group_id = data.azurerm_management_group.target.id
 
-#NEW POLICY SET DEFINITION (Initiative)
+  policy_rule = <<POLICY_RULE
+{
+  "if": {
+    "allOf": [
+      {
+        "field": "type",
+        "equals": "Microsoft.Compute/virtualMachines"
+      },
+      {
+        "field": "Microsoft.Compute/virtualMachines/osProfile.adminUsername",
+        "in": ["admin", "root", "administrator", "system"]
+      }
+    ]
+  },
+  "then": {
+    "effect": "audit"
+  }
+}
+POLICY_RULE
+}
 
-#==============================================================================
+# Custom Policy 4: Minimum Admin Password Length
+resource "azurerm_policy_definition" "min_password_length" {
+  name                = "min-admin-password-length"
+  policy_type         = "Custom"
+  mode                = "Indexed"
+  display_name        = "Enforce Minimum Admin Password Length (18 chars)"
+  description         = "Ensures VM admin passwords meet the 18-character minimum length requirement."
+  management_group_id = data.azurerm_management_group.target.id
+
+  policy_rule = <<POLICY_RULE
+{
+  "if": {
+    "allOf": [
+      {
+        "field": "type",
+        "equals": "Microsoft.Compute/virtualMachines"
+      },
+      {
+        "value": "[string(length(parameters('adminPassword')))]",
+        "less": 18
+      }
+    ]
+  },
+  "then": {
+    "effect": "deny"
+  }
+}
+POLICY_RULE
+}
+
+# Custom Policy 5: Infrastructure Encryption
+resource "azurerm_policy_definition" "infrastructure_encryption" {
+  name                = "require-infrastructure-encryption"
+  policy_type         = "Custom"
+  mode                = "Indexed"
+  display_name        = "Require Infrastructure Encryption for Storage"
+  description         = "Ensures storage accounts enable infrastructure double-encryption."
+  management_group_id = data.azurerm_management_group.target.id
+
+  policy_rule = <<POLICY_RULE
+{
+  "if": {
+    "allOf": [
+      {
+        "field": "type",
+        "equals": "Microsoft.Storage/storageAccounts"
+      },
+      {
+        "field": "Microsoft.Storage/storageAccounts/requireInfrastructureEncryption",
+        "notEquals": "true"
+      }
+    ]
+  },
+  "then": {
+    "effect": "deny"
+  }
+}
+POLICY_RULE
+}
+
+# Custom Policy 6: Standard SKU & Static Public IP
+resource "azurerm_policy_definition" "network_standard_sku" {
+  name                = "require-standard-sku-public-ip"
+  policy_type         = "Custom"
+  mode                = "Indexed"
+  display_name        = "Require Standard SKU and Static Allocation for Public IPs"
+  description         = "Enforces Standard SKU and Static allocation for Public IP resources."
+  management_group_id = data.azurerm_management_group.target.id
+
+  policy_rule = <<POLICY_RULE
+{
+  "if": {
+    "allOf": [
+      {
+        "field": "type",
+        "equals": "Microsoft.Network/publicIPAddresses"
+      },
+      {
+        "anyOf": [
+          {
+            "field": "Microsoft.Network/publicIPAddresses/publicIPAllocationMethod",
+            "notEquals": "Static"
+          },
+          {
+            "field": "Microsoft.Network/publicIPAddresses/sku.name",
+            "notEquals": "Standard"
+          }
+        ]
+      }
+    ]
+  },
+  "then": {
+    "effect": "deny"
+  }
+}
+POLICY_RULE
+}
+
+# ==============================================================================
+# 4. AZURE POLICY SET DEFINITION (GOVERNANCE INITIATIVE)
+# ==============================================================================
 
 resource "azurerm_policy_set_definition" "elz_governance_initiative" {
-name                = "elz-governance-baseline"
-policy_type         = "Custom"
-display_name        = "Enterprise Landing Zones Governance Baseline"
-description         = "Baseline governance initiative containing required compliance policies."
-management_group_id = data.azurerm_management_group.elz.id
+  name                = "elz-governance-baseline"
+  policy_type         = "Custom"
+  mode                = "Indexed"
+  display_name        = "ELZ Governance Baseline Initiative"
+  description         = "Bundles core security, networking, FinOps, and location guardrails across landing zones."
+  management_group_id = data.azurerm_management_group.target.id
 
-metadata = jsonencode({
-category = "Governance"
-version  = "1.0.0"
-})
+  policy_definition_reference {
+    policy_definition_id = azurerm_policy_definition.require_tag.id
+    reference_id         = "require-tag-ref"
+  }
 
-#Referencing Definition 1
+  policy_definition_reference {
+    policy_definition_id = azurerm_policy_definition.allowed_locations.id
+    reference_id         = "allowed-locations-ref"
+  }
 
-policy_definition_reference {
-policy_definition_id = azurerm_policy_definition.require_tag.id
-parameter_values = jsonencode({
-tagName = { value = "Environment" }
-effect  = { value = "[parameters('tagEffect')]" }
-})
+  policy_definition_reference {
+    policy_definition_id = azurerm_policy_definition.forbidden_usernames.id
+    reference_id         = "forbidden-usernames-ref"
+  }
+
+  policy_definition_reference {
+    policy_definition_id = azurerm_policy_definition.min_password_length.id
+    reference_id         = "min-password-length-ref"
+  }
+
+  policy_definition_reference {
+    policy_definition_id = azurerm_policy_definition.infrastructure_encryption.id
+    reference_id         = "infra-encryption-ref"
+  }
+
+  policy_definition_reference {
+    policy_definition_id = azurerm_policy_definition.network_standard_sku.id
+    reference_id         = "network-standard-sku-ref"
+  }
 }
 
-#Referencing Definition 2
+# ==============================================================================
+# 5. POLICY ASSIGNMENTS
+# ==============================================================================
 
-policy_definition_reference {
-policy_definition_id = azurerm_policy_definition.allowed_locations.id
-parameter_values = jsonencode({
-allowedLocations = { value = "[parameters('allowedLocationsList')]" }
-})
-}
-
-parameters = jsonencode({
-tagEffect = {
-type          = "String"
-allowedValues = ["Audit", "Deny", "Disabled"]
-defaultValue  = "Audit"
-}
-allowedLocationsList = {
-type         = "Array"
-defaultValue = ["eastus", "eastus2"]
-}
-})
-}
-
-#==============================================================================
-
-#NEW POLICY ASSIGNMENTS AT EXISTING SCOPES
-
-#==============================================================================
-
-#1. Primary Assignment at Management Group Scope (Inherits to all child Subs & RGs)
-
+# Management Group Initiative Assignment
 resource "azurerm_management_group_policy_assignment" "mg_assignment" {
-name                 = "elz-mg-gov-baseline"
-display_name         = "ELZ Management Group Baseline Assignment"
-description          = "Applies baseline governance initiative at existing Management Group scope."
-management_group_id  = data.azurerm_management_group.elz.id
-policy_definition_id = azurerm_policy_set_definition.elz_governance_initiative.id
-location             = var.location
-
-identity {
-type = "SystemAssigned"
+  name                 = "elz-mg-gov-baseline"
+  management_group_id  = data.azurerm_management_group.target.id
+  policy_definition_id = azurerm_policy_set_definition.elz_governance_initiative.id
+  display_name         = "ELZ Management Group Baseline Assignment"
+  description          = "Assigns the baseline governance initiative across the Management Group hierarchy."
 }
 
-parameters = jsonencode({
-tagEffect            = { value = var.policy_effect }
-allowedLocationsList = { value = ["eastus", "eastus2"] }
-})
-}
-
-#2. Targeted Assignment at Existing Subscription Scope (Optional Specific Enforcement)
-
+# Subscription Level Location Assignment
 resource "azurerm_subscription_policy_assignment" "sub_assignment" {
-name                 = "elz-sub-location-check"
-display_name         = "Subscription Location Restriction"
-description          = "Applies direct location policy assignment to existing Subscription scope."
-subscription_id      = data.azurerm_subscription.target.id
-policy_definition_id = azurerm_policy_definition.allowed_locations.id
-
-parameters = jsonencode({
-allowedLocations = { value = ["eastus", "eastus2"] }
-})
+  name                 = "elz-sub-location-check"
+  subscription_id      = "/subscriptions/399e8de6-c59b-4cd5-80fe-41eef17c3aad"
+  policy_definition_id = azurerm_policy_definition.allowed_locations.id
+  display_name         = "Subscription Location Restriction Assignment"
 }
 
-#3. Granular Assignment at Existing Resource Group Scope (Optional Specific Enforcement)
-
+# Resource Group Scope Tag Assignment
 resource "azurerm_resource_group_policy_assignment" "rg_assignment" {
-name                 = "elz-rg-tag-audit"
-display_name         = "Resource Group Tag Requirement"
-description          = "Applies direct tag policy assignment to existing Resource Group scope."
-resource_group_id    = azurerm_resource_group.target.id
-policy_definition_id = azurerm_policy_definition.require_tag.id
-
-parameters = jsonencode({
-tagName = { value = "Environment" }
-effect  = { value = "Audit" }
-})
+  name                 = "elz-rg-tag-audit"
+  resource_group_id    = azurerm_resource_group.target.id
+  policy_definition_id = azurerm_policy_definition.require_tag.id
+  display_name         = "Resource Group Scope Tag Audit Assignment"
 }
 
-# --- Complete Import Block Set for Pre-existing Azure Resources ---
+# ==============================================================================
+# 6. DECLARATIVE STATE IMPORT BLOCKS
+# ==============================================================================
 
 import {
   to = azurerm_resource_group.target
