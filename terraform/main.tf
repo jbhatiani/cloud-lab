@@ -21,6 +21,11 @@ data "azurerm_management_group" "target" {
   name = "mg-enterprise-landing-zones"
 }
 
+# Target Subscription Data Source
+data "azurerm_subscription" "target" {
+  subscription_id = "399e8de6-c59b-4cd5-80fe-41eef17c3aad"
+}
+
 # ==============================================================================
 # 2. TARGET RESOURCE GROUP
 # ==============================================================================
@@ -220,7 +225,6 @@ POLICY_RULE
 resource "azurerm_policy_set_definition" "elz_governance_initiative" {
   name                = "elz-governance-baseline"
   policy_type         = "Custom"
-  mode                = "Indexed"
   display_name        = "ELZ Governance Baseline Initiative"
   description         = "Bundles core security, networking, FinOps, and location guardrails across landing zones."
   management_group_id = data.azurerm_management_group.target.id
@@ -260,7 +264,6 @@ resource "azurerm_policy_set_definition" "elz_governance_initiative" {
 # 5. POLICY ASSIGNMENTS
 # ==============================================================================
 
-# Management Group Initiative Assignment
 resource "azurerm_management_group_policy_assignment" "mg_assignment" {
   name                 = "elz-mg-gov-baseline"
   management_group_id  = data.azurerm_management_group.target.id
@@ -269,15 +272,13 @@ resource "azurerm_management_group_policy_assignment" "mg_assignment" {
   description          = "Assigns the baseline governance initiative across the Management Group hierarchy."
 }
 
-# Subscription Level Location Assignment
 resource "azurerm_subscription_policy_assignment" "sub_assignment" {
   name                 = "elz-sub-location-check"
-  subscription_id      = "/subscriptions/399e8de6-c59b-4cd5-80fe-41eef17c3aad"
+  subscription_id      = data.azurerm_subscription.target.id
   policy_definition_id = azurerm_policy_definition.allowed_locations.id
   display_name         = "Subscription Location Restriction Assignment"
 }
 
-# Resource Group Scope Tag Assignment
 resource "azurerm_resource_group_policy_assignment" "rg_assignment" {
   name                 = "elz-rg-tag-audit"
   resource_group_id    = azurerm_resource_group.target.id
@@ -302,6 +303,26 @@ import {
 import {
   to = azurerm_policy_definition.allowed_locations
   id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policyDefinitions/allowed-locations-policy"
+}
+
+import {
+  to = azurerm_policy_definition.forbidden_usernames
+  id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policyDefinitions/forbidden-admin-usernames"
+}
+
+import {
+  to = azurerm_policy_definition.min_password_length
+  id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policyDefinitions/min-admin-password-length"
+}
+
+import {
+  to = azurerm_policy_definition.infrastructure_encryption
+  id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policyDefinitions/require-infrastructure-encryption"
+}
+
+import {
+  to = azurerm_policy_definition.network_standard_sku
+  id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones/providers/Microsoft.Authorization/policyDefinitions/require-standard-sku-public-ip"
 }
 
 import {
