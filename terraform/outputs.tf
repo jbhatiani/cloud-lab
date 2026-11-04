@@ -1,18 +1,3 @@
-output "management_group_id" {
-  description = "The ID of the existing target Management Group."
-  value       = data.azurerm_management_group.target.id
-}
-
-output "subscription_id" {
-  description = "The ID of the existing target Subscription."
-  value       = data.azurerm_subscription.target.id
-}
-
-output "resource_group_id" {
-  description = "The ID of the target Resource Group."
-  value       = azurerm_resource_group.target.id
-}
-
 output "initiative_id" {
   description = "Resource ID of the newly created policy initiative."
   value       = azurerm_policy_set_definition.elz_governance_initiative.id
