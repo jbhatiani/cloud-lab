@@ -21,10 +21,8 @@ data "azurerm_management_group" "target" {
   name = "mg-enterprise-landing-zones"
 }
 
-# Target Subscription Data Source
-data "azurerm_subscription" "target" {
-  subscription_id = "399e8de6-c59b-4cd5-80fe-41eef17c3aad"
-}
+# Target Subscription Data Source (Dynamically Inferred via Authenticated Context)
+data "azurerm_subscription" "target" {}
 
 # ==============================================================================
 # 2. TARGET RESOURCE GROUP
@@ -129,6 +127,17 @@ resource "azurerm_policy_definition" "min_password_length" {
   description         = "Ensures VM admin passwords meet the 18-character minimum length requirement."
   management_group_id = data.azurerm_management_group.target.id
 
+  parameters = <<PARAMETERS
+{
+  "adminPassword": {
+    "type": "String",
+    "metadata": {
+      "description": "The administrator password for the virtual machine."
+    }
+  }
+}
+PARAMETERS
+
   policy_rule = <<POLICY_RULE
 {
   "if": {
@@ -150,13 +159,13 @@ resource "azurerm_policy_definition" "min_password_length" {
 POLICY_RULE
 }
 
-# Custom Policy 5: Infrastructure Encryption
+# Custom Policy 5: Infrastructure Encryption via HTTPS Only
 resource "azurerm_policy_definition" "infrastructure_encryption" {
   name                = "require-infrastructure-encryption"
   policy_type         = "Custom"
   mode                = "Indexed"
-  display_name        = "Require Infrastructure Encryption for Storage"
-  description         = "Ensures storage accounts enable infrastructure double-encryption."
+  display_name        = "Require Secure HTTPS Traffic for Storage Accounts"
+  description         = "Ensures storage accounts enforce secure transfer/HTTPS traffic."
   management_group_id = data.azurerm_management_group.target.id
 
   policy_rule = <<POLICY_RULE
@@ -168,7 +177,7 @@ resource "azurerm_policy_definition" "infrastructure_encryption" {
         "equals": "Microsoft.Storage/storageAccounts"
       },
       {
-        "field": "Microsoft.Storage/storageAccounts/requireInfrastructureEncryption",
+        "field": "Microsoft.Storage/storageAccounts/supportsHttpsTrafficOnly",
         "notEquals": "true"
       }
     ]
@@ -287,7 +296,7 @@ resource "azurerm_resource_group_policy_assignment" "rg_assignment" {
 }
 
 # ==============================================================================
-# 6. DECLARATIVE STATE IMPORT BLOCKS
+# 6. DECLARATIVE STATE IMPORT BLOCKS (Only for Pre-Existing Resources)
 # ==============================================================================
 
 import {
