@@ -34,10 +34,11 @@ data "azurerm_subscription" "target" {
 subscription_id = var.subscription_id
 }
 
-#3. Existing Target Resource Group
+#3. Target Resource Group Scope (Managed Resource)
 
-data "azurerm_resource_group" "target" {
-name = var.resource_group_name
+resource "azurerm_resource_group" "target" {
+  name     = var.resource_group_name
+  location = "centralus" # Matches the region where your RG currently lives
 }
 
 #==============================================================================
@@ -213,7 +214,7 @@ resource "azurerm_resource_group_policy_assignment" "rg_assignment" {
 name                 = "elz-rg-tag-audit"
 display_name         = "Resource Group Tag Requirement"
 description          = "Applies direct tag policy assignment to existing Resource Group scope."
-resource_group_id    = data.azurerm_resource_group.target.id
+resource_group_id    = azurerm_resource_group.target.id
 policy_definition_id = azurerm_policy_definition.require_tag.id
 
 parameters = jsonencode({

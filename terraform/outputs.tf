@@ -9,8 +9,8 @@ value       = data.azurerm_subscription.target.id
 }
 
 output "resource_group_id" {
-description = "The ID of the existing target Resource Group."
-value       = data.azurerm_resource_group.target.id
+  description = "The ID of the target Resource Group."
+  value       = azurerm_resource_group.target.id
 }
 
 output "initiative_id" {
