@@ -13,7 +13,7 @@ default     = "399e8de6-c59b-4cd5-80fe-41eef17c3aad"
 variable "resource_group_name" {
 type        = string
 description = "The name of the existing target Resource Group."
-default     = "rg-enterprise-governance"
+default     = "rg-webapp-prod-cus"
 }
 
 variable "location" {
