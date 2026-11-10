@@ -48,6 +48,8 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
         working-directory: ./terraform
+        env:
+          TF_VAR_github_service_principal_object_id: ${{ secrets.AZURE_SP_OBJECT_ID }}
 
       - name: Upload Terraform State Artifact
         uses: actions/upload-artifact@v4
