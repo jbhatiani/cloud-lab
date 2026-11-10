@@ -12,21 +12,19 @@ provider "azurerm" {
   features {}
 }
 
-# 1. Management Group (Idempotent: Adopts safely if it already exists)
-resource "azurerm_management_group" "elz" {
-  name         = "mg-enterprise-landing-zones"
-  display_name = "Enterprise Landing Zones"
+# 1. Reference existing Management Group (Prevents "already exists" creation error)
+data "azurerm_management_group" "elz" {
+  name = "mg-enterprise-landing-zones"
 }
 
-# 2. Reference existing subscription via Data Source to prevent creation/import errors
+# 2. Reference existing Subscription
 data "azurerm_subscription" "landing_zone" {
   subscription_id = "399e8de6-c59b-4cd5-80fe-41eef17c3aad"
 }
 
-# 3. Resource Group (Idempotent in Central US: Adopts safely if it already exists)
-resource "azurerm_resource_group" "rg" {
-  name     = var.resource_group_name
-  location = var.location
+# 3. Reference existing Resource Group in Central US
+data "azurerm_resource_group" "rg" {
+  name = var.resource_group_name
 }
 
 # 4. Grant GitHub OIDC App Contributor Permissions on the Subscription

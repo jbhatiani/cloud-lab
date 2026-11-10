@@ -44,6 +44,8 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -out=tfplan
         working-directory: ./terraform
+        env:
+          TF_VAR_github_service_principal_object_id: ${{ secrets.AZURE_SP_OBJECT_ID }}
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
