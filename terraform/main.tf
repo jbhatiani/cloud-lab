@@ -12,48 +12,26 @@ provider "azurerm" {
   features {}
 }
 
-# ==============================================================================
-# IMPORT BLOCKS (Safely adopts pre-existing resources created via scripts)
-# ==============================================================================
-
-import {
-  to = azurerm_management_group.elz
-  id = "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
-}
-
-import {
-  to = azurerm_subscription.landing_zone
-  id = "/subscriptions/399e8de6-c59b-4cd5-80fe-41eef17c3aad"
-}
-
-import {
-  to = azurerm_resource_group.rg
-  id = "/subscriptions/399e8de6-c59b-4cd5-80fe-41eef17c3aad/resourceGroups/rg-webapp-prod-cus"
-}
-
-# ==============================================================================
-# INFRASTRUCTURE RESOURCES
-# ==============================================================================
-
+# 1. Management Group (Idempotent: Adopts safely if it already exists)
 resource "azurerm_management_group" "elz" {
   name         = "mg-enterprise-landing-zones"
   display_name = "Enterprise Landing Zones"
 }
 
-resource "azurerm_subscription" "landing_zone" {
-  alias             = "landing-zone"
-  subscription_name = "landing zone"
-  workload          = "Production"
-  subscription_id   = "399e8de6-c59b-4cd5-80fe-41eef17c3aad" # Fixes the missing argument error
+# 2. Reference existing subscription via Data Source to prevent creation/import errors
+data "azurerm_subscription" "landing_zone" {
+  subscription_id = "399e8de6-c59b-4cd5-80fe-41eef17c3aad"
 }
 
+# 3. Resource Group (Idempotent in Central US: Adopts safely if it already exists)
 resource "azurerm_resource_group" "rg" {
   name     = var.resource_group_name
   location = var.location
 }
 
+# 4. Grant GitHub OIDC App Contributor Permissions on the Subscription
 resource "azurerm_role_assignment" "oidc_app_permissions" {
-  scope                = azurerm_subscription.landing_zone.id
+  scope                = data.azurerm_subscription.landing_zone.id
   role_definition_name = "Contributor"
   principal_id         = var.github_service_principal_object_id
 }

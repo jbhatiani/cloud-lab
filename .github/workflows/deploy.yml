@@ -18,7 +18,6 @@ jobs:
       - name: Checkout Repository Code
         uses: actions/checkout@v4
 
-      # 1. Download previous state file (90-day retention) to preserve existing resource tracking
       - name: Download Terraform State Artifact
         uses: actions/download-artifact@v4
         with:
@@ -50,7 +49,6 @@ jobs:
         run: terraform apply -auto-approve tfplan
         working-directory: ./terraform
 
-      # 2. Upload updated state back to GitHub Actions storage (Retained for 90 days)
       - name: Upload Terraform State Artifact
         uses: actions/upload-artifact@v4
         with:
