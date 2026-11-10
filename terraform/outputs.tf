@@ -1,9 +1,14 @@
-output "initiative_id" {
-  description = "Resource ID of the newly created policy initiative."
-  value       = azurerm_policy_set_definition.elz_governance_initiative.id
+output "management_group_id" {
+  description = "The ID of the target Management Group."
+  value       = azurerm_management_group.elz.id
 }
 
-output "mg_policy_assignment_id" {
-  description = "Resource ID of the Management Group policy assignment."
-  value       = azurerm_management_group_policy_assignment.mg_assignment.id
+output "subscription_id" {
+  description = "The ID of the target Subscription."
+  value       = azurerm_subscription.landing_zone.subscription_id
+}
+
+output "resource_group_id" {
+  description = "The ID of the target Resource Group."
+  value       = azurerm_resource_group.rg.id
 }

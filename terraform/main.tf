@@ -35,26 +35,23 @@ import {
 # INFRASTRUCTURE RESOURCES
 # ==============================================================================
 
-# 1. Management Group Creation / Management
 resource "azurerm_management_group" "elz" {
   name         = "mg-enterprise-landing-zones"
   display_name = "Enterprise Landing Zones"
 }
 
-# 2. Subscription Provisioning
 resource "azurerm_subscription" "landing_zone" {
-  alias             = "landing-zone-alias"
+  alias             = "landing-zone"
   subscription_name = "landing zone"
   workload          = "Production"
+  subscription_id   = "399e8de6-c59b-4cd5-80fe-41eef17c3aad" # Fixes the missing argument error
 }
 
-# 3. Resource Group Creation
 resource "azurerm_resource_group" "rg" {
   name     = var.resource_group_name
   location = var.location
 }
 
-# 4. Grant GitHub OIDC App Contributor Permissions on the Subscription
 resource "azurerm_role_assignment" "oidc_app_permissions" {
   scope                = azurerm_subscription.landing_zone.id
   role_definition_name = "Contributor"
