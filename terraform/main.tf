@@ -30,7 +30,7 @@ data "azurerm_subscription" "landing_zone" {
 }
 
 # 3. Associate/Move the existing subscription into the Enterprise Landing Zones Management Group
-resource "azurerm_management_group_subscription" "mg_sub_association" {
+resource "azurerm_management_group_subscription_association" "mg_sub_association" {
   management_group_id = data.azurerm_management_group.elz.id
   subscription_id     = data.azurerm_subscription.landing_zone.id
 }
@@ -41,7 +41,7 @@ resource "azurerm_resource_group" "rg" {
   name     = var.resource_group_name
   location = var.location
 
-  depends_on = [azurerm_management_group_subscription.mg_sub_association]
+  depends_on = [azurerm_management_group_subscription_association.mg_sub_association]
 }
 
 # 5. Grant GitHub OIDC App Contributor Permissions on the Subscription
@@ -51,5 +51,5 @@ resource "azurerm_role_assignment" "oidc_app_permissions" {
   role_definition_name = "Contributor"
   principal_id         = var.github_service_principal_object_id
 
-  depends_on = [azurerm_management_group_subscription.mg_sub_association]
+  depends_on = [azurerm_management_group_subscription_association.mg_sub_association]
 }
