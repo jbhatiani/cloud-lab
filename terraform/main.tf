@@ -12,30 +12,30 @@ provider "azurerm" {
   features {}
 }
 
-# Provider alias configured to target the subscription dynamically via variable
 provider "azurerm" {
   features {}
   alias           = "sub_target"
   subscription_id = var.subscription_id
 }
 
-# 1. Reference existing Management Group
-data "azurerm_management_group" "elz" {
-  name = "mg-enterprise-landing-zones"
+# 1. Management Group
+resource "azurerm_management_group" "elz" {
+  name         = "mg-enterprise-landing-zones"
+  display_name = "Enterprise Landing Zones"
 }
 
-# 2. Reference existing Subscription dynamically
+# 2. Subscription Data Source
 data "azurerm_subscription" "landing_zone" {
   subscription_id = var.subscription_id
 }
 
-# 3. Associate/Move the existing subscription into the Enterprise Landing Zones Management Group
+# 3. Move/Associate Subscription into Management Group
 resource "azurerm_management_group_subscription_association" "mg_sub_association" {
-  management_group_id = data.azurerm_management_group.elz.id
+  management_group_id = azurerm_management_group.elz.id
   subscription_id     = data.azurerm_subscription.landing_zone.id
 }
 
-# 4. Provision or adopt the Resource Group inside the subscription using the provider alias
+# 4. Resource Group inside Target Subscription
 resource "azurerm_resource_group" "rg" {
   provider = azurerm.sub_target
   name     = var.resource_group_name
@@ -44,7 +44,7 @@ resource "azurerm_resource_group" "rg" {
   depends_on = [azurerm_management_group_subscription_association.mg_sub_association]
 }
 
-# 5. Grant GitHub OIDC App Contributor Permissions on the Subscription
+# 5. Role Assignment
 resource "azurerm_role_assignment" "oidc_app_permissions" {
   provider             = azurerm.sub_target
   scope                = data.azurerm_subscription.landing_zone.id

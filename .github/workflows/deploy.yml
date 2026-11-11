@@ -18,13 +18,6 @@ jobs:
       - name: Checkout Repository Code
         uses: actions/checkout@v4
 
-      - name: Download Terraform State Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: terraform-state
-          path: ./terraform
-        continue-on-error: true
-
       - name: Authenticate to Azure via OIDC
         uses: azure/login@v2
         with:
@@ -41,6 +34,19 @@ jobs:
         run: terraform init -upgrade
         working-directory: ./terraform
 
+      - name: Auto-Import Existing Azure Resources (Prevents Conflicts)
+        shell: bash
+        working-directory: ./terraform
+        run: |
+          # Check if Management Group already exists in Azure and import if not already in state
+          if az account management-group show --name "mg-enterprise-landing-zones" &>/dev/null; then
+            echo "Management Group already exists in Azure. Checking state..."
+            if ! terraform state list | grep -q "azurerm_management_group.elz"; then
+              echo "Importing existing Management Group into Terraform state..."
+              terraform import azurerm_management_group.elz "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
+            fi
+          fi
+
       - name: Terraform Plan
         run: terraform plan -out=tfplan
         working-directory: ./terraform
@@ -54,10 +60,3 @@ jobs:
         env:
           TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           TF_VAR_github_service_principal_object_id: ${{ secrets.AZURE_SP_OBJECT_ID }}
-
-      - name: Upload Terraform State Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-state
-          path: ./terraform/terraform.tfstate
-          retention-days: 90
