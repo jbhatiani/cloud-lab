@@ -47,7 +47,10 @@ jobs:
         run: |
           if az account management-group show --name "mg-enterprise-landing-zones" &>/dev/null; then
             echo "Management Group already exists in Azure. Checking state..."
-            if ! terraform state list | grep -q "azurerm_management_group.elz"; then
+            # Verify both that the state file exists and that the resource isn't already inside it
+            if [ -f "terraform.tfstate" ] && terraform state list | grep -q "azurerm_management_group.elz"; then
+              echo "Management Group is already tracked in Terraform state."
+            else
               echo "Importing existing Management Group into Terraform state..."
               terraform import azurerm_management_group.elz "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
             fi
