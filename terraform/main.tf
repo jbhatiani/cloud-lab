@@ -10,9 +10,10 @@ terraform {
 
 provider "azurerm" {
   features {}
+  use_oidc = true
 }
 
-# 1. Management Group (Creates new, or adopted via import)
+# 1. Management Group
 resource "azurerm_management_group" "elz" {
   name         = "mg-enterprise-landing-zones"
   display_name = "Enterprise Landing Zones"
@@ -25,9 +26,10 @@ resource "azurerm_subscription" "new_landing_zone" {
 }
 
 # 3. Automatically Move/Associate Subscription into the Management Group
+# Fixed: Prepended /subscriptions/ to match expected format
 resource "azurerm_management_group_subscription_association" "mg_sub_association" {
   management_group_id = azurerm_management_group.elz.id
-  subscription_id     = azurerm_subscription.new_landing_zone.subscription_id
+  subscription_id     = "/subscriptions/${azurerm_subscription.new_landing_zone.subscription_id}"
 }
 
 # Dynamic provider alias targeting the newly created subscription ID
@@ -35,6 +37,7 @@ provider "azurerm" {
   features {}
   alias           = "sub_target"
   subscription_id = azurerm_subscription.new_landing_zone.subscription_id
+  use_oidc        = true
 }
 
 # 4. Resource Group inside the New Subscription
