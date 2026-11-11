@@ -1,6 +1,6 @@
 output "management_group_id" {
   description = "The ID of the target Management Group."
-  value       = data.azurerm_management_group.elz.id
+  value       = azurerm_management_group.elz.id
 }
 
 output "subscription_id" {
