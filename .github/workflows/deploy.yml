@@ -57,13 +57,13 @@ jobs:
         run: terraform plan -out=tfplan
         working-directory: ./terraform
         env:
-          TF_VAR_billing_scope_id: ${{ secrets.AZURE_BILLING_SCOPE_ID }}
+          TF_VAR_billing_scope_id: ${{ secrets.AZURE_BILLING_SCOPE }}
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
         working-directory: ./terraform
         env:
-          TF_VAR_billing_scope_id: ${{ secrets.AZURE_BILLING_SCOPE_ID }}
+          TF_VAR_billing_scope_id: ${{ secrets.AZURE_BILLING_SCOPE }}
 
       - name: Upload Terraform State Artifact
         uses: actions/upload-artifact@v4
