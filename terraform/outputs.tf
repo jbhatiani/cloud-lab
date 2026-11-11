@@ -4,11 +4,11 @@ output "management_group_id" {
 }
 
 output "subscription_id" {
-  description = "The ID of the target Subscription."
+  description = "The ID of the Subscription."
   value       = data.azurerm_subscription.landing_zone.id
 }
 
 output "resource_group_id" {
-  description = "The ID of the target Resource Group."
-  value       = data.azurerm_resource_group.rg.id
+  description = "The ID of the provisioned Resource Group."
+  value       = azurerm_resource_group.rg.id
 }

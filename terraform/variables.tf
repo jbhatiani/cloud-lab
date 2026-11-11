@@ -1,3 +1,9 @@
+variable "subscription_id" {
+  type        = string
+  description = "The Target Subscription ID for the landing zone."
+  sensitive   = true
+}
+
 variable "resource_group_name" {
   type        = string
   description = "Name of the target Resource Group."
@@ -12,6 +18,7 @@ variable "location" {
 
 variable "github_service_principal_object_id" {
   type        = string
-  description = "Object ID of the GitHub OIDC Enterprise App / Service Principal in Entra ID."
+  description = "Object ID of the Enterprise Application Service Principal in Entra ID."
+  sensitive   = true
   default     = "" 
 }
