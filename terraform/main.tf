@@ -12,44 +12,36 @@ provider "azurerm" {
   features {}
 }
 
-provider "azurerm" {
-  features {}
-  alias           = "sub_target"
-  subscription_id = var.subscription_id
-}
-
-# 1. Management Group
+# 1. Management Group (Creates new, or adopted via import)
 resource "azurerm_management_group" "elz" {
   name         = "mg-enterprise-landing-zones"
   display_name = "Enterprise Landing Zones"
 }
 
-# 2. Subscription Data Source
-data "azurerm_subscription" "landing_zone" {
-  subscription_id = var.subscription_id
+# 2. Dynamically CREATE a New Subscription
+resource "azurerm_subscription" "new_landing_zone" {
+  subscription_name = "sub-prod-landingzone"
+  billing_scope_id  = var.billing_scope_id
 }
 
-# 3. Move/Associate Subscription into Management Group
+# 3. Automatically Move/Associate Subscription into the Management Group
 resource "azurerm_management_group_subscription_association" "mg_sub_association" {
   management_group_id = azurerm_management_group.elz.id
-  subscription_id     = data.azurerm_subscription.landing_zone.id
+  subscription_id     = azurerm_subscription.new_landing_zone.subscription_id
 }
 
-# 4. Resource Group inside Target Subscription
+# Dynamic provider alias targeting the newly created subscription ID
+provider "azurerm" {
+  features {}
+  alias           = "sub_target"
+  subscription_id = azurerm_subscription.new_landing_zone.subscription_id
+}
+
+# 4. Resource Group inside the New Subscription
 resource "azurerm_resource_group" "rg" {
   provider = azurerm.sub_target
   name     = var.resource_group_name
   location = var.location
-
-  depends_on = [azurerm_management_group_subscription_association.mg_sub_association]
-}
-
-# 5. Role Assignment
-resource "azurerm_role_assignment" "oidc_app_permissions" {
-  provider             = azurerm.sub_target
-  scope                = data.azurerm_subscription.landing_zone.id
-  role_definition_name = "Contributor"
-  principal_id         = var.github_service_principal_object_id
 
   depends_on = [azurerm_management_group_subscription_association.mg_sub_association]
 }

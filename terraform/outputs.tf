@@ -1,14 +1,9 @@
-output "management_group_id" {
-  description = "The ID of the target Management Group."
-  value       = azurerm_management_group.elz.id
-}
-
 output "subscription_id" {
-  description = "The ID of the Subscription."
-  value       = data.azurerm_subscription.landing_zone.id
+  description = "The GUID of the newly created subscription."
+  value       = azurerm_subscription.new_landing_zone.subscription_id
 }
 
-output "resource_group_id" {
-  description = "The ID of the provisioned Resource Group."
-  value       = azurerm_resource_group.rg.id
+output "resource_group_name" {
+  description = "The name of the deployed resource group."
+  value       = azurerm_resource_group.rg.name
 }
