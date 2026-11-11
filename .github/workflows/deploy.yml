@@ -44,6 +44,8 @@ jobs:
       - name: Auto-Import Existing Management Group (If Present)
         shell: bash
         working-directory: ./terraform
+        env:
+          TF_VAR_billing_scope_id: ${{ secrets.AZURE_BILLING_SCOPE }}
         run: |
           if az account management-group show --name "mg-enterprise-landing-zones" &>/dev/null; then
             echo "Management Group already exists in Azure. Checking state..."
