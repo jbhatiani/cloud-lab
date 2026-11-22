@@ -1,0 +1,81 @@
+name: Provision Landing Zone
+
+on:
+  workflow_dispatch:
+    inputs:
+      location:
+        default: "centralus"
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_USE_OIDC: "true"
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: tfstate-landing-zone
+          path: ./terraform
+
+      - run: terraform init -input=false
+
+      - env:
+          ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          terraform apply -auto-approve -input=false \
+            -target=azurerm_subscription.landing_zone \
+            -target=time_sleep.wait_sub \
+            -target=azurerm_management_group_subscription_association.mg \
+            -target=azurerm_role_assignment.rbac \
+            -var="billing_account_name=${{ secrets.AZURE_BILLING_ACCOUNT_NAME }}" \
+            -var="billing_profile_name=${{ secrets.AZURE_BILLING_PROFILE_NAME }}" \
+            -var="invoice_section_name=${{ secrets.AZURE_INVOICE_SECTION_NAME }}" \
+            -var="oidc_sp_object_id=${{ secrets.AZURE_OIDC_SP_OBJECT_ID }}"
+
+      - id: sub
+        run: |
+          SUB_ID=$(terraform output -raw subscription_id)
+          if [ -z "$SUB_ID" ]; then exit 1; fi
+          echo "id=$SUB_ID" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::$SUB_ID"
+
+      - env:
+          ARM_SUBSCRIPTION_ID: ${{ steps.sub.outputs.id }}
+        run: |
+          terraform apply -auto-approve -input=false \
+            -var="billing_account_name=${{ secrets.AZURE_BILLING_ACCOUNT_NAME }}" \
+            -var="billing_profile_name=${{ secrets.AZURE_BILLING_PROFILE_NAME }}" \
+            -var="invoice_section_name=${{ secrets.AZURE_INVOICE_SECTION_NAME }}" \
+            -var="oidc_sp_object_id=${{ secrets.AZURE_OIDC_SP_OBJECT_ID }}" \
+            -var="target_subscription_id=${{ steps.sub.outputs.id }}" \
+            -var="location=${{ inputs.location }}"
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfstate-landing-zone
+          path: ./terraform/terraform.tfstate
+          retention-days: 90
+          if-no-files-found: ignore

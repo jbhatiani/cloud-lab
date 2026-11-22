@@ -1,4 +1,11 @@
 terraform {
+  required_version = ">= 1.8.0"
+
+  backend "azurerm" {
+    use_oidc         = true
+    use_azuread_auth = true
+  }
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -14,13 +21,16 @@ terraform {
 provider "azurerm" {
   features {}
   use_oidc = true
+  subscription_id = var.bootstrap_subscription_id
+  resource_provider_registrations = "none"
 }
 
 provider "azurerm" {
   alias           = "new_sub"
   features        {}
   use_oidc        = true
-  subscription_id = var.target_subscription_id != "" ? var.target_subscription_id : null
+  subscription_id = var.target_subscription_id != "" ? var.target_subscription_id : var.bootstrap_subscription_id
+  resource_provider_registrations = "none"
 }
 
 variable "billing_account_name" {
@@ -41,6 +51,10 @@ variable "invoice_section_name" {
 variable "oidc_sp_object_id" {
   type      = string
   sensitive = true
+}
+
+variable "bootstrap_subscription_id" {
+  type = string
 }
 
 variable "target_subscription_id" {
@@ -67,31 +81,40 @@ data "azurerm_management_group" "mg" {
 resource "azurerm_subscription" "landing_zone" {
   subscription_name = "landing-zone"
   billing_scope_id  = data.azurerm_billing_mca_account_scope.scope.id
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "time_sleep" "wait_sub" {
-  create_duration = "30s"
+  create_duration = "120s"
   depends_on      = [azurerm_subscription.landing_zone]
 }
 
 resource "azurerm_management_group_subscription_association" "mg" {
   management_group_id = data.azurerm_management_group.mg.id
-  subscription_id     = azurerm_subscription.landing_zone.id
+  subscription_id     = "/subscriptions/${azurerm_subscription.landing_zone.subscription_id}"
   depends_on          = [time_sleep.wait_sub]
 }
 
 resource "azurerm_role_assignment" "rbac" {
-  scope                = azurerm_subscription.landing_zone.id
+  scope                = "/subscriptions/${azurerm_subscription.landing_zone.subscription_id}"
   role_definition_name = "Contributor"
   principal_id         = var.oidc_sp_object_id
-  depends_on           = [time_sleep.wait_sub]
+  depends_on           = [azurerm_management_group_subscription_association.mg]
+}
+
+resource "time_sleep" "wait_rbac" {
+  create_duration = "120s"
+  depends_on = [azurerm_role_assignment.rbac]
 }
 
 resource "azurerm_resource_group" "rg" {
   provider   = azurerm.new_sub
   name       = "rg-prod-app-cus"
   location   = var.location
-  depends_on = [azurerm_management_group_subscription_association.mg, azurerm_role_assignment.rbac]
+  depends_on = [time_sleep.wait_rbac]
 }
 
 output "subscription_id" {

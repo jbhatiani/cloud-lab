@@ -4,17 +4,32 @@ on:
   workflow_dispatch:
     inputs:
       location:
-        default: "centralus"
+        default: centralus
         type: string
 
 permissions:
   id-token: write
   contents: read
 
+concurrency:
+  group: landing-zone-state
+  cancel-in-progress: false
+
 env:
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-  ARM_USE_OIDC: "true"
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  ARM_USE_OIDC: 'true'
+  ARM_USE_AZUREAD: 'true'
+  TF_IN_AUTOMATION: 'true'
+  TF_VAR_bootstrap_subscription_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  TF_VAR_billing_account_name: ${{ secrets.AZURE_BILLING_ACCOUNT_NAME }}
+  TF_VAR_billing_profile_name: ${{ secrets.AZURE_BILLING_PROFILE_NAME }}
+  TF_VAR_invoice_section_name: ${{ secrets.AZURE_INVOICE_SECTION_NAME }}
+  TF_VAR_oidc_sp_object_id: ${{ secrets.AZURE_OIDC_SP_OBJECT_ID }}
+  TF_VAR_location: ${{ inputs.location }}
+  STATE_ACCOUNT: ${{ vars.TF_STATE_STORAGE_ACCOUNT }}
+  STATE_CONTAINER: ${{ vars.TF_STATE_CONTAINER }}
 
 jobs:
   provision:
@@ -22,60 +37,44 @@ jobs:
     defaults:
       run:
         working-directory: ./terraform
+        shell: bash
     steps:
       - uses: actions/checkout@v4
-
       - uses: hashicorp/setup-terraform@v3
-
-      - uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          allow-no-subscriptions: true
+          terraform_wrapper: false
 
-      - uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: tfstate-landing-zone
-          path: ./terraform
-
-      - run: terraform init -input=false
-
-      - env:
-          ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Initialize remote state
         run: |
-          terraform apply -auto-approve -input=false \
+          : "${STATE_ACCOUNT:?Missing TF_STATE_STORAGE_ACCOUNT}"
+          : "${STATE_CONTAINER:?Missing TF_STATE_CONTAINER}"
+          terraform init -input=false \
+            -backend-config="storage_account_name=$STATE_ACCOUNT" \
+            -backend-config="container_name=$STATE_CONTAINER" \
+            -backend-config="key=landing-zone.tfstate"
+
+      - name: Validate Terraform
+        run: terraform validate
+
+      - name: Provision subscription and RBAC
+        run: |
+          # Fail closed if the state cannot be read. Empty state is valid.
+          outputs=$(terraform output -json)
+          existing=$(jq -r '.subscription_id.value // empty' <<< "$outputs")
+          export TF_VAR_target_subscription_id="$existing"
+          terraform apply -auto-approve -input=false -lock-timeout=5m \
             -target=azurerm_subscription.landing_zone \
             -target=time_sleep.wait_sub \
             -target=azurerm_management_group_subscription_association.mg \
             -target=azurerm_role_assignment.rbac \
-            -var="billing_account_name=${{ secrets.AZURE_BILLING_ACCOUNT_NAME }}" \
-            -var="billing_profile_name=${{ secrets.AZURE_BILLING_PROFILE_NAME }}" \
-            -var="invoice_section_name=${{ secrets.AZURE_INVOICE_SECTION_NAME }}" \
-            -var="oidc_sp_object_id=${{ secrets.AZURE_OIDC_SP_OBJECT_ID }}"
+            -target=time_sleep.wait_rbac
 
-      - id: sub
+      - name: Deploy landing zone resources
         run: |
           SUB_ID=$(terraform output -raw subscription_id)
-          if [ -z "$SUB_ID" ]; then exit 1; fi
-          echo "id=$SUB_ID" >> "$GITHUB_OUTPUT"
-          echo "::add-mask::$SUB_ID"
-
-      - env:
-          ARM_SUBSCRIPTION_ID: ${{ steps.sub.outputs.id }}
-        run: |
-          terraform apply -auto-approve -input=false \
-            -var="billing_account_name=${{ secrets.AZURE_BILLING_ACCOUNT_NAME }}" \
-            -var="billing_profile_name=${{ secrets.AZURE_BILLING_PROFILE_NAME }}" \
-            -var="invoice_section_name=${{ secrets.AZURE_INVOICE_SECTION_NAME }}" \
-            -var="oidc_sp_object_id=${{ secrets.AZURE_OIDC_SP_OBJECT_ID }}" \
-            -var="target_subscription_id=${{ steps.sub.outputs.id }}" \
-            -var="location=${{ inputs.location }}"
-
-      - if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfstate-landing-zone
-          path: ./terraform/terraform.tfstate
-          retention-days: 90
-          if-no-files-found: ignore
+          if [[ ! "$SUB_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            echo 'Invalid subscription ID' >&2
+            exit 1
+          fi
+          export TF_VAR_target_subscription_id="$SUB_ID"
+          terraform apply -auto-approve -input=false -lock-timeout=5m
