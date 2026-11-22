@@ -1,9 +1,12 @@
 terraform {
-  required_version = ">= 1.6.0"
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.90"
+      version = "~> 4.0"
+    }
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.12"
     }
   }
 }
@@ -13,38 +16,89 @@ provider "azurerm" {
   use_oidc = true
 }
 
-# 1. Management Group
-resource "azurerm_management_group" "elz" {
-  name         = "mg-enterprise-landing-zones"
-  display_name = "Enterprise Landing Zones"
-}
-
-# 2. Dynamically CREATE a New Subscription
-resource "azurerm_subscription" "new_landing_zone" {
-  subscription_name = "sub-prod-landingzone"
-  billing_scope_id  = var.billing_scope_id
-}
-
-# 3. Automatically Move/Associate Subscription into the Management Group
-# Fixed: Prepended /subscriptions/ to match expected format
-resource "azurerm_management_group_subscription_association" "mg_sub_association" {
-  management_group_id = azurerm_management_group.elz.id
-  subscription_id     = "/subscriptions/${azurerm_subscription.new_landing_zone.subscription_id}"
-}
-
-# Dynamic provider alias targeting the newly created subscription ID
 provider "azurerm" {
-  features {}
-  alias           = "sub_target"
-  subscription_id = azurerm_subscription.new_landing_zone.subscription_id
+  alias           = "new_sub"
+  features        {}
   use_oidc        = true
+  subscription_id = var.target_subscription_id != "" ? var.target_subscription_id : null
 }
 
-# 4. Resource Group inside the New Subscription
-resource "azurerm_resource_group" "rg" {
-  provider = azurerm.sub_target
-  name     = var.resource_group_name
-  location = var.location
+variable "billing_account_name" {
+  type      = string
+  sensitive = true
+}
 
-  depends_on = [azurerm_management_group_subscription_association.mg_sub_association]
+variable "billing_profile_name" {
+  type      = string
+  sensitive = true
+}
+
+variable "invoice_section_name" {
+  type      = string
+  sensitive = true
+}
+
+variable "oidc_sp_object_id" {
+  type      = string
+  sensitive = true
+}
+
+variable "target_subscription_id" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
+variable "location" {
+  type    = string
+  default = "centralus"
+}
+
+data "azurerm_billing_mca_account_scope" "scope" {
+  billing_account_name = var.billing_account_name
+  billing_profile_name = var.billing_profile_name
+  invoice_section_name = var.invoice_section_name
+}
+
+data "azurerm_management_group" "mg" {
+  name = "mg-enterprise-landing-zones"
+}
+
+resource "azurerm_subscription" "landing_zone" {
+  subscription_name = "landing-zone"
+  billing_scope_id  = data.azurerm_billing_mca_account_scope.scope.id
+}
+
+resource "time_sleep" "wait_sub" {
+  create_duration = "30s"
+  depends_on      = [azurerm_subscription.landing_zone]
+}
+
+resource "azurerm_management_group_subscription_association" "mg" {
+  management_group_id = data.azurerm_management_group.mg.id
+  subscription_id     = azurerm_subscription.landing_zone.id
+  depends_on          = [time_sleep.wait_sub]
+}
+
+resource "azurerm_role_assignment" "rbac" {
+  scope                = azurerm_subscription.landing_zone.id
+  role_definition_name = "Contributor"
+  principal_id         = var.oidc_sp_object_id
+  depends_on           = [time_sleep.wait_sub]
+}
+
+resource "azurerm_resource_group" "rg" {
+  provider   = azurerm.new_sub
+  name       = "rg-prod-app-cus"
+  location   = var.location
+  depends_on = [azurerm_management_group_subscription_association.mg, azurerm_role_assignment.rbac]
+}
+
+output "subscription_id" {
+  value     = azurerm_subscription.landing_zone.subscription_id
+  sensitive = true
+}
+
+output "resource_group_id" {
+  value = azurerm_resource_group.rg.id
 }

@@ -1,78 +1,81 @@
-name: Deploy Azure Infrastructure via Terraform
+name: Provision Landing Zone
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
+    inputs:
+      location:
+        default: "centralus"
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_USE_OIDC: "true"
 
 jobs:
-  terraform-deploy:
-    name: Terraform Init, Plan & Apply
+  provision:
     runs-on: ubuntu-latest
-    
-    permissions:
-      id-token: write
-      contents: read
-
+    defaults:
+      run:
+        working-directory: ./terraform
     steps:
-      - name: Checkout Repository Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Authenticate to Azure via OIDC
-        uses: azure/login@v2
+      - uses: hashicorp/setup-terraform@v3
+
+      - uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           allow-no-subscriptions: true
 
-      - name: Download Previous Terraform State Artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: terraform-state
+          name: tfstate-landing-zone
           path: ./terraform
 
-      - name: Setup Terraform Engine
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.6.6"
+      - run: terraform init -input=false
 
-      - name: Terraform Init
-        run: terraform init -upgrade
-        working-directory: ./terraform
-
-      - name: Auto-Import Existing Management Group (If Present)
-        shell: bash
-        working-directory: ./terraform
-        env:
-          TF_VAR_billing_scope_id: ${{ secrets.AZURE_BILLING_SCOPE }}
+      - env:
+          ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
         run: |
-          if az account management-group show --name "mg-enterprise-landing-zones" &>/dev/null; then
-            echo "Management Group already exists in Azure. Checking state..."
-            # Verify both that the state file exists and that the resource isn't already inside it
-            if [ -f "terraform.tfstate" ] && terraform state list | grep -q "azurerm_management_group.elz"; then
-              echo "Management Group is already tracked in Terraform state."
-            else
-              echo "Importing existing Management Group into Terraform state..."
-              terraform import azurerm_management_group.elz "/providers/Microsoft.Management/managementGroups/mg-enterprise-landing-zones"
-            fi
-          fi
+          terraform apply -auto-approve -input=false \
+            -target=azurerm_subscription.landing_zone \
+            -target=time_sleep.wait_sub \
+            -target=azurerm_management_group_subscription_association.mg \
+            -target=azurerm_role_assignment.rbac \
+            -var="billing_account_name=${{ secrets.AZURE_BILLING_ACCOUNT_NAME }}" \
+            -var="billing_profile_name=${{ secrets.AZURE_BILLING_PROFILE_NAME }}" \
+            -var="invoice_section_name=${{ secrets.AZURE_INVOICE_SECTION_NAME }}" \
+            -var="oidc_sp_object_id=${{ secrets.AZURE_OIDC_SP_OBJECT_ID }}"
 
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan
-        working-directory: ./terraform
-        env:
-          TF_VAR_billing_scope_id: ${{ secrets.AZURE_BILLING_SCOPE }}
+      - id: sub
+        run: |
+          SUB_ID=$(terraform output -raw subscription_id)
+          if [ -z "$SUB_ID" ]; then exit 1; fi
+          echo "id=$SUB_ID" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::$SUB_ID"
 
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
-        working-directory: ./terraform
-        env:
-          TF_VAR_billing_scope_id: ${{ secrets.AZURE_BILLING_SCOPE }}
+      - env:
+          ARM_SUBSCRIPTION_ID: ${{ steps.sub.outputs.id }}
+        run: |
+          terraform apply -auto-approve -input=false \
+            -var="billing_account_name=${{ secrets.AZURE_BILLING_ACCOUNT_NAME }}" \
+            -var="billing_profile_name=${{ secrets.AZURE_BILLING_PROFILE_NAME }}" \
+            -var="invoice_section_name=${{ secrets.AZURE_INVOICE_SECTION_NAME }}" \
+            -var="oidc_sp_object_id=${{ secrets.AZURE_OIDC_SP_OBJECT_ID }}" \
+            -var="target_subscription_id=${{ steps.sub.outputs.id }}" \
+            -var="location=${{ inputs.location }}"
 
-      - name: Upload Terraform State Artifact
+      - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: terraform-state
+          name: tfstate-landing-zone
           path: ./terraform/terraform.tfstate
           retention-days: 90
+          if-no-files-found: ignore
